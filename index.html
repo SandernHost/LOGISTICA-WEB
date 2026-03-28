@@ -96,7 +96,7 @@
     </div>
 
     <script>
-        // Configuración de Supabase
+        // ÚNICA declaración de supabase
         const SUPABASE_URL = 'https://timhcltyedhsazlzcneq.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_2oBoopRGy3Tff7wjkwdP2A_RHYbctkQ';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -156,7 +156,7 @@
             `;
             const { data: ultimas } = await supabase.from('ordenes_venta').select('numero_ov, fecha_pedido, cliente_id, total, estado').order('fecha_pedido', { ascending: false }).limit(5);
             const tabla = `<table class="min-w-full"><thead> <th>N° OV</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th> </thead><tbody>${
-                ultimas?.map(ov => `<tr><td>${ov.numero_ov}</td><td>${ov.fecha_pedido}</td><td>${ov.cliente_id}</td><td>S/ ${ov.total?.toFixed(2)}</td><td>${ov.estado}</td></tr>`).join('') || '<tr><td colspan="5">No hay datos</td></tr>'
+                ultimas?.map(ov => `tr><td>${ov.numero_ov}</td><td>${ov.fecha_pedido}</td><td>${ov.cliente_id}</td><td>S/ ${ov.total?.toFixed(2)}</td><td>${ov.estado}</td></tr`).join('') || 'tr><td colspan="5">No hay datos</td></tr'
             }</tbody></table>`;
             document.getElementById('ultimas-ventas').innerHTML = tabla;
         }
