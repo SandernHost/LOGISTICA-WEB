@@ -10,12 +10,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Chart.js para gráficos -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
         .loader { border-top-color: #3490dc; animation: spinner 0.6s linear infinite; }
         @keyframes spinner { to { transform: rotate(360deg); } }
         .nav-active { background-color: #1e40af; color: white; }
@@ -24,7 +23,7 @@
 </head>
 <body class="bg-gray-100">
 
-    <div id="app" class="min-h-screen flex flex-col">
+    <div class="min-h-screen flex flex-col">
         <!-- Navbar -->
         <nav class="bg-blue-800 text-white shadow-lg">
             <div class="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -32,16 +31,14 @@
                     <i class="fas fa-truck-fast text-2xl"></i>
                     <span class="font-bold text-xl">LogiGest</span>
                 </div>
-                <div id="user-info" class="flex items-center space-x-4">
-                    <span id="user-name" class="hidden md:inline"></span>
-                    <button id="logout-btn" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm hidden">Cerrar sesión</button>
+                <div>
+                    <span class="text-sm">Modo demo - Sin autenticación</span>
                 </div>
             </div>
         </nav>
 
-        <!-- Sidebar + Contenido (visible solo cuando logueado) -->
-        <div id="main-content" class="flex flex-1 hidden">
-            <!-- Sidebar -->
+        <!-- Sidebar + Contenido -->
+        <div class="flex flex-1">
             <aside class="w-64 bg-white shadow-md overflow-y-auto">
                 <div class="py-4">
                     <a href="#" data-module="dashboard" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
@@ -89,7 +86,6 @@
                 </div>
             </aside>
 
-            <!-- Contenido dinámico -->
             <main class="flex-1 p-6 overflow-y-auto" id="dynamic-content">
                 <div class="text-center py-20">
                     <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
@@ -97,100 +93,16 @@
                 </div>
             </main>
         </div>
-
-        <!-- Pantalla de login -->
-        <div id="login-container" class="flex-1 flex items-center justify-center bg-gray-100">
-            <div class="bg-white p-8 rounded shadow-md w-96">
-                <h2 class="text-2xl font-bold mb-6 text-center">Acceso al Sistema</h2>
-                <form id="login-form">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">Email</label>
-                        <input type="email" id="email" class="w-full border rounded px-3 py-2" required>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-gray-700 mb-2">Contraseña</label>
-                        <input type="password" id="password" class="w-full border rounded px-3 py-2" required>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Ingresar</button>
-                </form>
-                <p class="text-center text-sm text-gray-500 mt-4">Demo: use cualquier email/contraseña (creará usuario en Supabase)</p>
-            </div>
-        </div>
     </div>
 
     <script>
-        // ===================== CONFIGURACIÓN DE SUPABASE =====================
+        // Configuración de Supabase
         const SUPABASE_URL = 'https://timhcltyedhsazlzcneq.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_2oBoopRGy3Tff7wjkwdP2A_RHYbctkQ';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let currentUser = null;
-
-        // Funciones de autenticación
-        async function login(email, password) {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                // Si no existe, registra
-                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
-                if (signUpError) throw signUpError;
-                return signUpData.user;
-            }
-            return data.user;
-        }
-
-        async function logout() {
-            await supabase.auth.signOut();
-            currentUser = null;
-            document.getElementById('login-container').classList.remove('hidden');
-            document.getElementById('main-content').classList.add('hidden');
-            document.getElementById('user-name').innerText = '';
-            document.getElementById('logout-btn').classList.add('hidden');
-        }
-
-        // Verificar sesión al cargar
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                currentUser = session.user;
-                showMainApp();
-            } else {
-                document.getElementById('login-container').classList.remove('hidden');
-                document.getElementById('main-content').classList.add('hidden');
-            }
-        });
-
-        supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN') {
-                currentUser = session.user;
-                showMainApp();
-            } else if (event === 'SIGNED_OUT') {
-                currentUser = null;
-                document.getElementById('login-container').classList.remove('hidden');
-                document.getElementById('main-content').classList.add('hidden');
-            }
-        });
-
-        function showMainApp() {
-            document.getElementById('login-container').classList.add('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
-            document.getElementById('user-name').innerText = currentUser.email;
-            document.getElementById('logout-btn').classList.remove('hidden');
-            loadModule('dashboard');
-        }
-
-        // Event listeners
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            try {
-                await login(email, password);
-                Swal.fire('Éxito', 'Sesión iniciada correctamente', 'success');
-            } catch (err) {
-                Swal.fire('Error', err.message, 'error');
-            }
-        });
-
-        document.getElementById('logout-btn').addEventListener('click', logout);
+        // Cargar módulo por defecto
+        loadModule('dashboard');
 
         // Navegación
         document.querySelectorAll('.nav-item').forEach(link => {
@@ -198,7 +110,6 @@
                 e.preventDefault();
                 const module = link.getAttribute('data-module');
                 if (module) loadModule(module);
-                // Marcar activo
                 document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('bg-blue-100', 'text-blue-800'));
                 link.classList.add('bg-blue-100', 'text-blue-800');
             });
@@ -208,86 +119,62 @@
             const contentDiv = document.getElementById('dynamic-content');
             contentDiv.innerHTML = '<div class="flex justify-center items-center h-64"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>';
             setTimeout(async () => {
-                if (module === 'dashboard') await renderDashboard(contentDiv);
-                else if (module === 'empresas') await renderEmpresas(contentDiv);
-                else if (module === 'almacenes') await renderAlmacenes(contentDiv);
-                else if (module === 'productos') await renderProductos(contentDiv);
-                else if (module === 'proveedores') await renderProveedores(contentDiv);
-                else if (module === 'clientes') await renderClientes(contentDiv);
-                else if (module === 'empleados') await renderEmpleados(contentDiv);
-                else if (module === 'compras') await renderCompras(contentDiv);
-                else if (module === 'ventas') await renderVentas(contentDiv);
-                else if (module === 'inventario') await renderInventario(contentDiv);
-                else if (module === 'transporte') await renderTransporte(contentDiv);
-                else if (module === 'reportes') await renderReportes(contentDiv);
-                else contentDiv.innerHTML = '<p>Módulo no encontrado</p>';
+                try {
+                    if (module === 'dashboard') await renderDashboard(contentDiv);
+                    else if (module === 'empresas') await renderEmpresas(contentDiv);
+                    else if (module === 'almacenes') await renderAlmacenes(contentDiv);
+                    else if (module === 'productos') await renderProductos(contentDiv);
+                    else if (module === 'proveedores') await renderProveedores(contentDiv);
+                    else if (module === 'clientes') await renderClientes(contentDiv);
+                    else if (module === 'empleados') await renderEmpleados(contentDiv);
+                    else if (module === 'compras') await renderCompras(contentDiv);
+                    else if (module === 'ventas') await renderVentas(contentDiv);
+                    else if (module === 'inventario') await renderInventario(contentDiv);
+                    else if (module === 'transporte') await renderTransporte(contentDiv);
+                    else if (module === 'reportes') await renderReportes(contentDiv);
+                    else contentDiv.innerHTML = '<p>Módulo no encontrado</p>';
+                } catch (err) {
+                    contentDiv.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">Error: ${err.message}</div>`;
+                }
             }, 300);
         }
 
         // ===================== MÓDULO DASHBOARD =====================
         async function renderDashboard(container) {
-            // Obtener datos resumen
-            const { count: empresasCount } = await supabase.from('empresas').select('*', { count: 'exact', head: true });
-            const { count: productosCount } = await supabase.from('productos').select('*', { count: 'exact', head: true });
-            const { data: ventas, error: ventasError } = await supabase.from('ordenes_venta').select('total').eq('estado', 'entregada');
+            const { count: empresasCount } = await supabase.from('empresas').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0 }));
+            const { count: productosCount } = await supabase.from('productos').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0 }));
+            const { data: ventas } = await supabase.from('ordenes_venta').select('total').eq('estado', 'entregada').catch(() => ({ data: [] }));
             const totalVentas = ventas?.reduce((sum, v) => sum + (v.total || 0), 0) || 0;
 
             container.innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded shadow card-hover">
-                        <div class="flex items-center">
-                            <div class="p-3 bg-blue-100 rounded-full"><i class="fas fa-building text-blue-600 text-2xl"></i></div>
-                            <div class="ml-4"><h3 class="text-gray-500">Empresas</h3><p class="text-2xl font-bold">${empresasCount || 0}</p></div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded shadow card-hover">
-                        <div class="flex items-center">
-                            <div class="p-3 bg-green-100 rounded-full"><i class="fas fa-boxes text-green-600 text-2xl"></i></div>
-                            <div class="ml-4"><h3 class="text-gray-500">Productos</h3><p class="text-2xl font-bold">${productosCount || 0}</p></div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded shadow card-hover">
-                        <div class="flex items-center">
-                            <div class="p-3 bg-yellow-100 rounded-full"><i class="fas fa-chart-line text-yellow-600 text-2xl"></i></div>
-                            <div class="ml-4"><h3 class="text-gray-500">Ventas Totales</h3><p class="text-2xl font-bold">S/ ${totalVentas.toFixed(2)}</p></div>
-                        </div>
-                    </div>
+                    <div class="bg-white p-6 rounded shadow card-hover"><div class="flex items-center"><div class="p-3 bg-blue-100 rounded-full"><i class="fas fa-building text-blue-600 text-2xl"></i></div><div class="ml-4"><h3 class="text-gray-500">Empresas</h3><p class="text-2xl font-bold">${empresasCount || 0}</p></div></div></div>
+                    <div class="bg-white p-6 rounded shadow card-hover"><div class="flex items-center"><div class="p-3 bg-green-100 rounded-full"><i class="fas fa-boxes text-green-600 text-2xl"></i></div><div class="ml-4"><h3 class="text-gray-500">Productos</h3><p class="text-2xl font-bold">${productosCount || 0}</p></div></div></div>
+                    <div class="bg-white p-6 rounded shadow card-hover"><div class="flex items-center"><div class="p-3 bg-yellow-100 rounded-full"><i class="fas fa-chart-line text-yellow-600 text-2xl"></i></div><div class="ml-4"><h3 class="text-gray-500">Ventas Totales</h3><p class="text-2xl font-bold">S/ ${totalVentas.toFixed(2)}</p></div></div></div>
                 </div>
-                <div class="bg-white p-6 rounded shadow">
-                    <h3 class="text-lg font-semibold mb-4">Últimas Órdenes de Venta</h3>
-                    <div id="ultimas-ventas" class="overflow-x-auto"><p class="text-gray-500">Cargando...</p></div>
-                </div>
+                <div class="bg-white p-6 rounded shadow"><h3 class="text-lg font-semibold mb-4">Últimas Órdenes de Venta</h3><div id="ultimas-ventas" class="overflow-x-auto"><p class="text-gray-500">Cargando...</p></div></div>
             `;
-
-            // Cargar últimas 5 órdenes de venta
-            const { data: ultimas } = await supabase.from('ordenes_venta')
-                .select('numero_ov, fecha_pedido, cliente_id, total, estado')
-                .order('fecha_pedido', { ascending: false })
-                .limit(5);
-            const tabla = `<table class="min-w-full"><thead><tr><th>N° OV</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody>
-                ${ultimas?.map(ov => `<tr><td>${ov.numero_ov}</td><td>${ov.fecha_pedido}</td><td>${ov.cliente_id}</td><td>S/ ${ov.total?.toFixed(2)}</td><td>${ov.estado}</td></tr>`).join('') || '<tr><td colspan="5">No hay datos</td></tr>'}
-            </tbody></table>`;
+            const { data: ultimas } = await supabase.from('ordenes_venta').select('numero_ov, fecha_pedido, cliente_id, total, estado').order('fecha_pedido', { ascending: false }).limit(5);
+            const tabla = `<table class="min-w-full"><thead> <th>N° OV</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th> </thead><tbody>${
+                ultimas?.map(ov => `<tr><td>${ov.numero_ov}</td><td>${ov.fecha_pedido}</td><td>${ov.cliente_id}</td><td>S/ ${ov.total?.toFixed(2)}</td><td>${ov.estado}</td></tr>`).join('') || '<tr><td colspan="5">No hay datos</td></tr>'
+            }</tbody></table>`;
             document.getElementById('ultimas-ventas').innerHTML = tabla;
         }
 
         // ===================== MÓDULO EMPRESAS =====================
         async function renderEmpresas(container) {
-            const { data: empresas, error } = await supabase.from('empresas').select('*');
+            const { data: empresas } = await supabase.from('empresas').select('*');
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Empresas</h2>
                 <button onclick="mostrarFormularioEmpresa()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nueva Empresa</button></div>
                 <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>RUC</th><th>País</th><th>Moneda</th><th>Acciones</th></tr></thead><tbody>
-                ${empresas?.map(emp => `
-                    <tr><td>${emp.codigo}</td><td>${emp.nombre}</td><td>${emp.ruc}</td><td>${emp.pais}</td><td>${emp.moneda}</td>
-                    <td><button onclick="editarEmpresa(${emp.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> 
-                    <button onclick="eliminarEmpresa(${emp.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
-                `).join('') || '<tr><td colspan="6">No hay registros</td></tr>'}
+                ${empresas?.map(emp => `<tr><td>${emp.codigo}</td><td>${emp.nombre}</td><td>${emp.ruc}</td><td>${emp.pais}</td><td>${emp.moneda}</td><td><button onclick="editarEmpresa(${emp.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarEmpresa(${emp.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="6">No hay registros</td></tr>'}
                 </tbody></table></div>
             `;
             window.mostrarFormularioEmpresa = () => mostrarModalEmpresa();
             window.editarEmpresa = async (id) => { const { data } = await supabase.from('empresas').select('*').eq('id', id).single(); mostrarModalEmpresa(data); };
             window.eliminarEmpresa = async (id) => {
-                if (!confirm('¿Eliminar empresa? Se perderán datos asociados.')) return;
+                if (!confirm('¿Eliminar empresa?')) return;
                 await supabase.from('empresas').delete().eq('id', id);
                 renderEmpresas(container);
                 Swal.fire('Eliminado', 'Empresa eliminada', 'success');
@@ -304,7 +191,6 @@
                     <input id="pais" class="swal2-input" placeholder="País" value="${empresa?.pais || ''}">
                     <input id="moneda" class="swal2-input" placeholder="Moneda" value="${empresa?.moneda || 'USD'}">
                 `,
-                focusConfirm: false,
                 preConfirm: async () => {
                     const data = {
                         codigo: document.getElementById('codigo').value,
@@ -314,11 +200,8 @@
                         moneda: document.getElementById('moneda').value,
                         razon_social: document.getElementById('nombre').value,
                     };
-                    if (empresa) {
-                        await supabase.from('empresas').update(data).eq('id', empresa.id);
-                    } else {
-                        await supabase.from('empresas').insert(data);
-                    }
+                    if (empresa) await supabase.from('empresas').update(data).eq('id', empresa.id);
+                    else await supabase.from('empresas').insert(data);
                     renderEmpresas(document.getElementById('dynamic-content'));
                 }
             });
@@ -331,11 +214,7 @@
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Almacenes</h2>
                 <button onclick="mostrarFormularioAlmacen()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Almacén</button></div>
                 <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>Empresa</th><th>Tipo</th><th>Ciudad</th><th>Capacidad (m³)</th><th>Acciones</th></tr></thead><tbody>
-                ${almacenes?.map(alm => `
-                    <tr><td>${alm.codigo}</td><td>${alm.nombre}</td><td>${alm.empresas?.nombre}</td><td>${alm.tipo}</td><td>${alm.ciudad}</td><td>${alm.capacidad_volumen}</td>
-                    <td><button onclick="editarAlmacen(${alm.id})" class="text-blue-600"><i class="fas fa-edit"></i></button>
-                    <button onclick="eliminarAlmacen(${alm.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
-                `).join('') || '<tr><td colspan="7">No hay registros</td></tr>'}
+                ${almacenes?.map(alm => `<tr><td>${alm.codigo}</td><td>${alm.nombre}</td><td>${alm.empresas?.nombre}</td><td>${alm.tipo}</td><td>${alm.ciudad}</td><td>${alm.capacidad_volumen}</td><td><button onclick="editarAlmacen(${alm.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarAlmacen(${alm.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay registros</td></tr>'}
                 </tbody></table></div>
             `;
             window.mostrarFormularioAlmacen = () => mostrarModalAlmacen();
@@ -393,11 +272,7 @@
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Productos</h2>
                 <button onclick="mostrarFormularioProducto()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Producto</button></div>
                 <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>SKU</th><th>Nombre</th><th>Categoría</th><th>Marca</th><th>Peso (kg)</th><th>Volumen (m³)</th><th>Acciones</th></tr></thead><tbody>
-                ${productos?.map(prod => `
-                    <tr><td>${prod.sku}</td><td>${prod.nombre}</td><td>${prod.categoria}</td><td>${prod.marca}</td><td>${prod.peso_unitario}</td><td>${prod.volumen_unitario}</td>
-                    <td><button onclick="editarProducto(${prod.id})" class="text-blue-600"><i class="fas fa-edit"></i></button>
-                    <button onclick="eliminarProducto(${prod.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
-                `).join('') || '<tr><td colspan="7">No hay productos</td></tr>'}
+                ${productos?.map(prod => `<tr><td>${prod.sku}</td><td>${prod.nombre}</td><td>${prod.categoria}</td><td>${prod.marca}</td><td>${prod.peso_unitario}</td><td>${prod.volumen_unitario}</td><td><button onclick="editarProducto(${prod.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarProducto(${prod.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay productos</td></tr>'}
                 </tbody></table></div>
             `;
             window.mostrarFormularioProducto = () => mostrarModalProducto();
@@ -429,9 +304,9 @@
                         marca: document.getElementById('marca').value,
                         peso_unitario: parseFloat(document.getElementById('peso_unitario').value) || 0,
                         volumen_unitario: parseFloat(document.getElementById('volumen_unitario').value) || 0,
-                        unidad_peso_id: 1, // simplificado, asume kg
-                        unidad_volumen_id: 4, // m³
-                        unidad_dimension_id: 6, // m
+                        unidad_peso_id: 1,
+                        unidad_volumen_id: 4,
+                        unidad_dimension_id: 6,
                     };
                     if (producto) await supabase.from('productos').update(data).eq('id', producto.id);
                     else await supabase.from('productos').insert(data);
@@ -447,11 +322,7 @@
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Proveedores</h2>
                 <button onclick="mostrarFormularioProveedor()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Proveedor</button></div>
                 <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>RUC</th><th>Teléfono</th><th>Ciudad</th><th>Plazo (días)</th><th>Acciones</th></tr></thead><tbody>
-                ${proveedores?.map(prov => `
-                    <tr><td>${prov.codigo}</td><td>${prov.nombre}</td><td>${prov.ruc}</td><td>${prov.contacto_telefono}</td><td>${prov.ciudad}</td><td>${prov.plazo_entrega_dias}</td>
-                    <td><button onclick="editarProveedor(${prov.id})" class="text-blue-600"><i class="fas fa-edit"></i></button>
-                    <button onclick="eliminarProveedor(${prov.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
-                `).join('') || '<tr><td colspan="7">No hay proveedores</td></tr>'}
+                ${proveedores?.map(prov => `<tr><td>${prov.codigo}</td><td>${prov.nombre}</td><td>${prov.ruc}</td><td>${prov.contacto_telefono}</td><td>${prov.ciudad}</td><td>${prov.plazo_entrega_dias}</td><td><button onclick="editarProveedor(${prov.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarProveedor(${prov.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay proveedores</td></tr>'}
                 </tbody></table></div>
             `;
             window.mostrarFormularioProveedor = () => mostrarModalProveedor();
@@ -498,11 +369,7 @@
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Clientes</h2>
                 <button onclick="mostrarFormularioCliente()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Cliente</button></div>
                 <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>Documento</th><th>Teléfono</th><th>Email</th><th>Crédito</th><th>Acciones</th></tr></thead><tbody>
-                ${clientes?.map(cli => `
-                    <tr><td>${cli.codigo}</td><td>${cli.nombre}</td><td>${cli.documento}</td><td>${cli.telefono}</td><td>${cli.email}</td><td>${cli.limite_credito}</td>
-                    <td><button onclick="editarCliente(${cli.id})" class="text-blue-600"><i class="fas fa-edit"></i></button>
-                    <button onclick="eliminarCliente(${cli.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
-                `).join('') || '<tr><td colspan="7">No hay clientes</td></tr>'}
+                ${clientes?.map(cli => `<tr><td>${cli.codigo}</td><td>${cli.nombre}</td><td>${cli.documento}</td><td>${cli.telefono}</td><td>${cli.email}</td><td>${cli.limite_credito}</td><td><button onclick="editarCliente(${cli.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarCliente(${cli.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay clientes</td></tr>'}
                 </tbody></table></div>
             `;
             window.mostrarFormularioCliente = () => mostrarModalCliente();
@@ -534,7 +401,7 @@
                         telefono: document.getElementById('telefono').value,
                         email: document.getElementById('email').value,
                         limite_credito: parseFloat(document.getElementById('limite_credito').value) || 0,
-                        tipo_documento: 'RUC', // simplificado
+                        tipo_documento: 'RUC',
                     };
                     if (cliente) await supabase.from('clientes').update(data).eq('id', cliente.id);
                     else await supabase.from('clientes').insert(data);
@@ -550,11 +417,7 @@
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Empleados</h2>
                 <button onclick="mostrarFormularioEmpleado()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Empleado</button></div>
                 <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>Email</th><th>Puesto</th><th>Supervisor</th><th>Almacén</th><th>Acciones</th></tr></thead><tbody>
-                ${empleados?.map(emp => `
-                    <tr><td>${emp.codigo}</td><td>${emp.nombre} ${emp.apellido}</td><td>${emp.email}</td><td>${emp.puestos?.nombre}</td><td>${emp.supervisor_id}</td><td>${emp.almacen_asignado_id}</td>
-                    <td><button onclick="editarEmpleado(${emp.id})" class="text-blue-600"><i class="fas fa-edit"></i></button>
-                    <button onclick="eliminarEmpleado(${emp.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
-                `).join('') || '<tr><td colspan="7">No hay empleados</td></tr>'}
+                ${empleados?.map(emp => `<tr><td>${emp.codigo}</td><td>${emp.nombre} ${emp.apellido}</td><td>${emp.email}</td><td>${emp.puestos?.nombre}</td><td>${emp.supervisor_id}</td><td>${emp.almacen_asignado_id}</td><td><button onclick="editarEmpleado(${emp.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarEmpleado(${emp.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay empleados</td></tr>'}
                 </tbody></table></div>
             `;
             window.mostrarFormularioEmpleado = () => mostrarModalEmpleado();
@@ -610,10 +473,7 @@
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Órdenes de Compra</h2>
                 <button onclick="mostrarFormularioOC()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nueva OC</button></div>
                 <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>N° OC</th><th>Proveedor</th><th>Fecha Emisión</th><th>Estado</th><th>Total</th><th>Acciones</th></tr></thead><tbody>
-                ${ordenes?.map(oc => `
-                    <tr><td>${oc.numero_oc}</td><td>${oc.proveedores?.nombre}</td><td>${oc.fecha_emision}</td><td>${oc.estado}</td><td>S/ ${oc.total?.toFixed(2)}</td>
-                    <td><button onclick="verDetalleOC(${oc.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>
-                `).join('') || '<tr><td colspan="6">No hay órdenes</td></tr>'}
+                ${ordenes?.map(oc => `<tr><td>${oc.numero_oc}</td><td>${oc.proveedores?.nombre}</td><td>${oc.fecha_emision}</td><td>${oc.estado}</td><td>S/ ${oc.total?.toFixed(2)}</td><td><button onclick="verDetalleOC(${oc.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>`).join('') || '<tr><td colspan="6">No hay órdenes</td></tr>'}
                 </tbody></table></div>
             `;
             window.mostrarFormularioOC = () => mostrarModalOC();
@@ -622,11 +482,7 @@
                 const { data: detalles } = await supabase.from('oc_detalles').select('*, productos(nombre)').eq('orden_compra_id', id);
                 Swal.fire({
                     title: `OC ${oc.numero_oc}`,
-                    html: `<div class="text-left"><p><strong>Proveedor:</strong> ${oc.proveedores.nombre}</p>
-                           <p><strong>Fecha:</strong> ${oc.fecha_emision}</p>
-                           <p><strong>Estado:</strong> ${oc.estado}</p>
-                           <p><strong>Total:</strong> S/ ${oc.total}</p>
-                           <hr><h4>Detalles</h4><ul>${detalles?.map(d => `<li>${d.productos?.nombre} - ${d.cantidad_solicitada} x S/ ${d.precio_unitario}</li>`).join('')}</ul></div>`,
+                    html: `<div class="text-left"><p><strong>Proveedor:</strong> ${oc.proveedores.nombre}</p><p><strong>Fecha:</strong> ${oc.fecha_emision}</p><p><strong>Estado:</strong> ${oc.estado}</p><p><strong>Total:</strong> S/ ${oc.total}</p><hr><h4>Detalles</h4><ul>${detalles?.map(d => `<li>${d.productos?.nombre} - ${d.cantidad_solicitada} x S/ ${d.precio_unitario}</li>`).join('')}</ul></div>`,
                     width: '600px'
                 });
             };
@@ -653,12 +509,7 @@
                     document.getElementById('add-item-oc').addEventListener('click', () => {
                         const container = document.getElementById('items-oc');
                         const div = document.createElement('div');
-                        div.innerHTML = `
-                            <select class="producto-select mt-2"></select>
-                            <input type="number" placeholder="Cantidad" class="cantidad-input ml-2 w-24">
-                            <input type="number" placeholder="Precio" class="precio-input ml-2 w-24">
-                            <button class="remove-item text-red-600 ml-2">X</button>
-                        `;
+                        div.innerHTML = `<select class="producto-select mt-2"></select><input type="number" placeholder="Cantidad" class="cantidad-input ml-2 w-24"><input type="number" placeholder="Precio" class="precio-input ml-2 w-24"><button class="remove-item text-red-600 ml-2">X</button>`;
                         container.appendChild(div);
                         supabase.from('productos').select('id, nombre').then(({ data }) => {
                             const sel = div.querySelector('.producto-select');
@@ -680,30 +531,13 @@
                         const producto_id = div.querySelector('.producto-select').value;
                         const cantidad = div.querySelector('.cantidad-input').value;
                         const precio = div.querySelector('.precio-input').value;
-                        if (producto_id && cantidad && precio) {
-                            items.push({ producto_id: parseInt(producto_id), cantidad: parseFloat(cantidad), precio: parseFloat(precio) });
-                        }
+                        if (producto_id && cantidad && precio) items.push({ producto_id: parseInt(producto_id), cantidad: parseFloat(cantidad), precio: parseFloat(precio) });
                     });
                     if (items.length === 0) throw new Error('Agregue al menos un producto');
-                    const { data: oc, error } = await supabase.from('ordenes_compra').insert({
-                        numero_oc: 'OC-' + Date.now(),
-                        proveedor_id,
-                        fecha_emision,
-                        estado: 'borrador',
-                        moneda: 'PEN',
-                        subtotal: 0, total: 0
-                    }).select().single();
+                    const { data: oc, error } = await supabase.from('ordenes_compra').insert({ numero_oc: 'OC-' + Date.now(), proveedor_id, fecha_emision, estado: 'borrador', moneda: 'PEN', subtotal: 0, total: 0 }).select().single();
                     if (error) throw error;
                     for (const item of items) {
-                        await supabase.from('oc_detalles').insert({
-                            orden_compra_id: oc.id,
-                            producto_id: item.producto_id,
-                            cantidad_solicitada: item.cantidad,
-                            cantidad_recibida: 0,
-                            precio_unitario: item.precio,
-                            unidad_compra_id: 8,
-                            factor_conversion: 1
-                        });
+                        await supabase.from('oc_detalles').insert({ orden_compra_id: oc.id, producto_id: item.producto_id, cantidad_solicitada: item.cantidad, cantidad_recibida: 0, precio_unitario: item.precio, unidad_compra_id: 8, factor_conversion: 1 });
                     }
                     const subtotal = items.reduce((sum, i) => sum + i.cantidad * i.precio, 0);
                     await supabase.from('ordenes_compra').update({ subtotal, total: subtotal * 1.18 }).eq('id', oc.id);
@@ -720,10 +554,7 @@
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Órdenes de Venta</h2>
                 <button onclick="mostrarFormularioOV()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nueva OV</button></div>
                 <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>N° OV</th><th>Cliente</th><th>Fecha Pedido</th><th>Estado</th><th>Total</th><th>Acciones</th></tr></thead><tbody>
-                ${ventas?.map(ov => `
-                    <tr><td>${ov.numero_ov}</td><td>${ov.clientes?.nombre}</td><td>${ov.fecha_pedido}</td><td>${ov.estado}</td><td>S/ ${ov.total?.toFixed(2)}</td>
-                    <td><button onclick="verDetalleOV(${ov.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>
-                `).join('') || '<tr><td colspan="6">No hay órdenes</td></tr>'}
+                ${ventas?.map(ov => `<tr><td>${ov.numero_ov}</td><td>${ov.clientes?.nombre}</td><td>${ov.fecha_pedido}</td><td>${ov.estado}</td><td>S/ ${ov.total?.toFixed(2)}</td><td><button onclick="verDetalleOV(${ov.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>`).join('') || '<tr><td colspan="6">No hay órdenes</td></tr>'}
                 </tbody></table></div>
             `;
             window.mostrarFormularioOV = () => mostrarModalOV();
@@ -732,11 +563,7 @@
                 const { data: detalles } = await supabase.from('ov_detalles').select('*, productos(nombre)').eq('orden_venta_id', id);
                 Swal.fire({
                     title: `OV ${ov.numero_ov}`,
-                    html: `<div class="text-left"><p><strong>Cliente:</strong> ${ov.clientes.nombre}</p>
-                           <p><strong>Fecha:</strong> ${ov.fecha_pedido}</p>
-                           <p><strong>Estado:</strong> ${ov.estado}</p>
-                           <p><strong>Total:</strong> S/ ${ov.total}</p>
-                           <hr><h4>Detalles</h4><ul>${detalles?.map(d => `<li>${d.productos?.nombre} - ${d.cantidad} x S/ ${d.precio_unitario}</li>`).join('')}</ul></div>`,
+                    html: `<div class="text-left"><p><strong>Cliente:</strong> ${ov.clientes.nombre}</p><p><strong>Fecha:</strong> ${ov.fecha_pedido}</p><p><strong>Estado:</strong> ${ov.estado}</p><p><strong>Total:</strong> S/ ${ov.total}</p><hr><h4>Detalles</h4><ul>${detalles?.map(d => `<li>${d.productos?.nombre} - ${d.cantidad} x S/ ${d.precio_unitario}</li>`).join('')}</ul></div>`,
                     width: '600px'
                 });
             };
@@ -763,12 +590,7 @@
                     document.getElementById('add-item-ov').addEventListener('click', () => {
                         const container = document.getElementById('items-ov');
                         const div = document.createElement('div');
-                        div.innerHTML = `
-                            <select class="producto-select mt-2"></select>
-                            <input type="number" placeholder="Cantidad" class="cantidad-input ml-2 w-24">
-                            <input type="number" placeholder="Precio" class="precio-input ml-2 w-24">
-                            <button class="remove-item text-red-600 ml-2">X</button>
-                        `;
+                        div.innerHTML = `<select class="producto-select mt-2"></select><input type="number" placeholder="Cantidad" class="cantidad-input ml-2 w-24"><input type="number" placeholder="Precio" class="precio-input ml-2 w-24"><button class="remove-item text-red-600 ml-2">X</button>`;
                         container.appendChild(div);
                         supabase.from('productos').select('id, nombre').then(({ data }) => {
                             const sel = div.querySelector('.producto-select');
@@ -790,27 +612,13 @@
                         const producto_id = div.querySelector('.producto-select').value;
                         const cantidad = div.querySelector('.cantidad-input').value;
                         const precio = div.querySelector('.precio-input').value;
-                        if (producto_id && cantidad && precio) {
-                            items.push({ producto_id: parseInt(producto_id), cantidad: parseFloat(cantidad), precio: parseFloat(precio) });
-                        }
+                        if (producto_id && cantidad && precio) items.push({ producto_id: parseInt(producto_id), cantidad: parseFloat(cantidad), precio: parseFloat(precio) });
                     });
                     if (items.length === 0) throw new Error('Agregue al menos un producto');
-                    const { data: ov, error } = await supabase.from('ordenes_venta').insert({
-                        numero_ov: 'OV-' + Date.now(),
-                        cliente_id,
-                        fecha_pedido,
-                        estado: 'creada',
-                        moneda: 'PEN',
-                        subtotal: 0, total: 0
-                    }).select().single();
+                    const { data: ov, error } = await supabase.from('ordenes_venta').insert({ numero_ov: 'OV-' + Date.now(), cliente_id, fecha_pedido, estado: 'creada', moneda: 'PEN', subtotal: 0, total: 0 }).select().single();
                     if (error) throw error;
                     for (const item of items) {
-                        await supabase.from('ov_detalles').insert({
-                            orden_venta_id: ov.id,
-                            producto_id: item.producto_id,
-                            cantidad: item.cantidad,
-                            precio_unitario: item.precio
-                        });
+                        await supabase.from('ov_detalles').insert({ orden_venta_id: ov.id, producto_id: item.producto_id, cantidad: item.cantidad, precio_unitario: item.precio });
                     }
                     const subtotal = items.reduce((sum, i) => sum + i.cantidad * i.precio, 0);
                     await supabase.from('ordenes_venta').update({ subtotal, total: subtotal * 1.18 }).eq('id', ov.id);
@@ -826,9 +634,7 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Inventario por Ubicación</h2></div>
                 <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Producto</th><th>SKU</th><th>Ubicación</th><th>Lote</th><th>Cantidad</th><th>Reservado</th><th>Vencimiento</th></tr></thead><tbody>
-                ${inventario?.map(inv => `
-                    <tr><td>${inv.productos?.nombre}</td><td>${inv.productos?.sku}</td><td>${inv.ubicaciones?.codigo}</td><td>${inv.lote}</td><td>${inv.cantidad}</td><td>${inv.reservado}</td><td>${inv.fecha_vencimiento || '-'}</td></tr>
-                `).join('') || '<tr><td colspan="7">No hay inventario</td></tr>'}
+                ${inventario?.map(inv => `<tr><td>${inv.productos?.nombre}</td><td>${inv.productos?.sku}</td><td>${inv.ubicaciones?.codigo}</td><td>${inv.lote}</td><td>${inv.cantidad}</td><td>${inv.reservado}</td><td>${inv.fecha_vencimiento || '-'}</td></tr>`).join('') || '<tr><td colspan="7">No hay inventario</td></tr>'}
                 </tbody></table></div>
             `;
         }
@@ -840,10 +646,7 @@
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Manifiestos</h2>
                 <button onclick="mostrarFormularioManifiesto()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Manifiesto</button></div>
                 <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>ID</th><th>Transportista</th><th>Vehículo</th><th>Conductor</th><th>Salida</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
-                ${manifiestos?.map(m => `
-                    <tr><td>${m.id}</td><td>${m.transportistas?.nombre}</td><td>${m.vehiculos?.placa}</td><td>${m.conductores?.nombre}</td><td>${m.fecha_salida}</td><td>${m.estado}</td>
-                    <td><button onclick="verDetalleManifiesto(${m.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>
-                `).join('') || '<tr><td colspan="7">No hay manifiestos</td></tr>'}
+                ${manifiestos?.map(m => `<tr><td>${m.id}</td><td>${m.transportistas?.nombre}</td><td>${m.vehiculos?.placa}</td><td>${m.conductores?.nombre}</td><td>${m.fecha_salida}</td><td>${m.estado}</td><td><button onclick="verDetalleManifiesto(${m.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay manifiestos</td></tr>'}
                 </tbody></table></div>
             `;
             window.mostrarFormularioManifiesto = () => mostrarModalManifiesto();
@@ -851,13 +654,7 @@
                 const { data: m } = await supabase.from('manifiestos').select('*, transportistas(*), vehiculos(*), conductores(*)').eq('id', id).single();
                 Swal.fire({
                     title: `Manifiesto ${m.id}`,
-                    html: `<div class="text-left"><p><strong>Transportista:</strong> ${m.transportistas.nombre}</p>
-                           <p><strong>Vehículo:</strong> ${m.vehiculos?.placa} (${m.vehiculos?.tipo_vehiculo})</p>
-                           <p><strong>Conductor:</strong> ${m.conductores?.nombre}</p>
-                           <p><strong>Salida:</strong> ${m.fecha_salida}</p>
-                           <p><strong>Llegada estimada:</strong> ${m.fecha_estimada_llegada}</p>
-                           <p><strong>Estado:</strong> ${m.estado}</p>
-                           <p><strong>Costo:</strong> S/ ${m.costo_transporte}</p></div>`,
+                    html: `<div class="text-left"><p><strong>Transportista:</strong> ${m.transportistas.nombre}</p><p><strong>Vehículo:</strong> ${m.vehiculos?.placa} (${m.vehiculos?.tipo_vehiculo})</p><p><strong>Conductor:</strong> ${m.conductores?.nombre}</p><p><strong>Salida:</strong> ${m.fecha_salida}</p><p><strong>Llegada estimada:</strong> ${m.fecha_estimada_llegada}</p><p><strong>Estado:</strong> ${m.estado}</p><p><strong>Costo:</strong> S/ ${m.costo_transporte}</p></div>`,
                     width: '600px'
                 });
             };
@@ -878,28 +675,13 @@
                 didOpen: async () => {
                     const { data: transportistas } = await supabase.from('transportistas').select('id, nombre');
                     const selectT = document.getElementById('transportista_id');
-                    transportistas.forEach(t => {
-                        const opt = document.createElement('option');
-                        opt.value = t.id;
-                        opt.text = t.nombre;
-                        selectT.appendChild(opt);
-                    });
+                    transportistas.forEach(t => { const opt = document.createElement('option'); opt.value = t.id; opt.text = t.nombre; selectT.appendChild(opt); });
                     const { data: vehiculos } = await supabase.from('vehiculos').select('id, placa');
                     const selectV = document.getElementById('vehiculo_id');
-                    vehiculos.forEach(v => {
-                        const opt = document.createElement('option');
-                        opt.value = v.id;
-                        opt.text = v.placa;
-                        selectV.appendChild(opt);
-                    });
+                    vehiculos.forEach(v => { const opt = document.createElement('option'); opt.value = v.id; opt.text = v.placa; selectV.appendChild(opt); });
                     const { data: conductores } = await supabase.from('conductores').select('id, nombre');
                     const selectC = document.getElementById('conductor_id');
-                    conductores.forEach(c => {
-                        const opt = document.createElement('option');
-                        opt.value = c.id;
-                        opt.text = c.nombre;
-                        selectC.appendChild(opt);
-                    });
+                    conductores.forEach(c => { const opt = document.createElement('option'); opt.value = c.id; opt.text = c.nombre; selectC.appendChild(opt); });
                 },
                 preConfirm: async () => {
                     const data = {
@@ -921,14 +703,11 @@
 
         // ===================== MÓDULO REPORTES =====================
         async function renderReportes(container) {
-            // Obtener datos para gráficos
-            const { data: ventasPorMes } = await supabase.rpc('ventas_por_mes'); // Función personalizada en Supabase
-            // Como no tenemos función, hacemos consulta manual
             const { data: ventas } = await supabase.from('ordenes_venta').select('fecha_pedido, total');
             const ventasMensuales = {};
             ventas?.forEach(v => {
                 const mes = new Date(v.fecha_pedido).toLocaleString('es', { month: 'short' });
-                ventasMensuales[mes] = (ventasMensuales[mes] || 0) + v.total;
+                ventasMensuales[mes] = (ventasMensuales[mes] || 0) + (v.total || 0);
             });
             const labels = Object.keys(ventasMensuales);
             const values = Object.values(ventasMensuales);
@@ -936,38 +715,22 @@
             container.innerHTML = `
                 <h2 class="text-2xl font-bold mb-4">Reportes</h2>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white p-4 rounded shadow">
-                        <h3 class="text-lg font-semibold mb-2">Ventas por Mes</h3>
-                        <canvas id="ventasChart" width="400" height="200"></canvas>
-                    </div>
-                    <div class="bg-white p-4 rounded shadow">
-                        <h3 class="text-lg font-semibold mb-2">Top 5 Productos Más Vendidos</h3>
-                        <div id="topProductos"></div>
-                    </div>
+                    <div class="bg-white p-4 rounded shadow"><h3 class="text-lg font-semibold mb-2">Ventas por Mes</h3><canvas id="ventasChart" width="400" height="200"></canvas></div>
+                    <div class="bg-white p-4 rounded shadow"><h3 class="text-lg font-semibold mb-2">Top 5 Productos Más Vendidos</h3><div id="topProductos"></div></div>
                 </div>
             `;
-            // Gráfico
             const ctx = document.getElementById('ventasChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: { labels, datasets: [{ label: 'Ventas (S/)', data: values, backgroundColor: 'rgba(54, 162, 235, 0.5)' }] }
-            });
-            // Top productos
-            const { data: top } = await supabase
-                .from('ov_detalles')
-                .select('producto_id, productos(nombre), cantidad')
-                .then(async (res) => {
-                    const grouped = {};
-                    res.data?.forEach(d => {
-                        grouped[d.producto_id] = (grouped[d.producto_id] || 0) + d.cantidad;
-                    });
-                    const sorted = Object.entries(grouped).sort((a,b) => b[1] - a[1]).slice(0,5);
-                    const productosNombres = await Promise.all(sorted.map(async ([id, total]) => {
-                        const { data: prod } = await supabase.from('productos').select('nombre').eq('id', id).single();
-                        return `${prod.nombre}: ${total} unidades`;
-                    }));
-                    document.getElementById('topProductos').innerHTML = `<ul>${productosNombres.map(p => `<li>${p}</li>`).join('')}</ul>`;
-                });
+            new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Ventas (S/)', data: values, backgroundColor: 'rgba(54, 162, 235, 0.5)' }] } });
+
+            const { data: detalles } = await supabase.from('ov_detalles').select('producto_id, cantidad');
+            const grouped = {};
+            detalles?.forEach(d => grouped[d.producto_id] = (grouped[d.producto_id] || 0) + d.cantidad);
+            const sorted = Object.entries(grouped).sort((a,b) => b[1] - a[1]).slice(0,5);
+            const productosNombres = await Promise.all(sorted.map(async ([id, total]) => {
+                const { data: prod } = await supabase.from('productos').select('nombre').eq('id', id).single();
+                return `${prod?.nombre}: ${total} unidades`;
+            }));
+            document.getElementById('topProductos').innerHTML = `<ul>${productosNombres.map(p => `<li>${p}</li>`).join('')}</ul>`;
         }
     </script>
 </body>
