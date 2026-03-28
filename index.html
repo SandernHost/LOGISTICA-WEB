@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiGest - Sistema de Gestión Logística</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .loader { border-top-color: #3490dc; animation: spinner 0.6s linear infinite; }
+        @keyframes spinner { to { transform: rotate(360deg); } }
+        .nav-active { background-color: #1e40af; color: white; }
+        .card-hover:hover { transform: translateY(-2px); transition: 0.2s; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Navbar -->
+        <nav class="bg-blue-800 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-truck-fast text-2xl"></i>
+                    <span class="font-bold text-xl">LogiGest</span>
+                </div>
+                <div id="user-info" class="flex items-center space-x-4">
+                    <span id="user-name" class="hidden md:inline"></span>
+                    <button id="logout-btn" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm hidden">Cerrar sesión</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Sidebar + Contenido (visible solo cuando logueado) -->
+        <div id="main-content" class="flex flex-1 hidden">
+            <!-- Sidebar -->
+            <aside class="w-64 bg-white shadow-md overflow-y-auto">
+                <div class="py-4">
+                    <a href="#" data-module="dashboard" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                    </a>
+                    <div class="border-t my-2"></div>
+                    <h3 class="px-4 text-xs font-semibold text-gray-500 uppercase">Maestros</h3>
+                    <a href="#" data-module="empresas" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-building mr-2"></i> Empresas
+                    </a>
+                    <a href="#" data-module="almacenes" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-warehouse mr-2"></i> Almacenes
+                    </a>
+                    <a href="#" data-module="productos" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-boxes mr-2"></i> Productos
+                    </a>
+                    <a href="#" data-module="proveedores" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-truck mr-2"></i> Proveedores
+                    </a>
+                    <a href="#" data-module="clientes" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-users mr-2"></i> Clientes
+                    </a>
+                    <a href="#" data-module="empleados" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-id-badge mr-2"></i> Empleados
+                    </a>
+                    <div class="border-t my-2"></div>
+                    <h3 class="px-4 text-xs font-semibold text-gray-500 uppercase">Operaciones</h3>
+                    <a href="#" data-module="compras" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-shopping-cart mr-2"></i> Órdenes de Compra
+                    </a>
+                    <a href="#" data-module="ventas" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-chart-line mr-2"></i> Órdenes de Venta
+                    </a>
+                    <a href="#" data-module="inventario" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-database mr-2"></i> Inventario
+                    </a>
+                    <a href="#" data-module="transporte" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-shipping-fast mr-2"></i> Transporte
+                    </a>
+                    <div class="border-t my-2"></div>
+                    <h3 class="px-4 text-xs font-semibold text-gray-500 uppercase">Reportes</h3>
+                    <a href="#" data-module="reportes" class="nav-item block px-4 py-2 text-gray-700 hover:bg-blue-100 hover:text-blue-800">
+                        <i class="fas fa-chart-pie mr-2"></i> Reportes
+                    </a>
+                </div>
+            </aside>
+
+            <!-- Contenido dinámico -->
+            <main class="flex-1 p-6 overflow-y-auto" id="dynamic-content">
+                <div class="text-center py-20">
+                    <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+                    <p class="mt-2">Cargando módulo...</p>
+                </div>
+            </main>
+        </div>
+
+        <!-- Pantalla de login -->
+        <div id="login-container" class="flex-1 flex items-center justify-center bg-gray-100">
+            <div class="bg-white p-8 rounded shadow-md w-96">
+                <h2 class="text-2xl font-bold mb-6 text-center">Acceso al Sistema</h2>
+                <form id="login-form">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">Email</label>
+                        <input type="email" id="email" class="w-full border rounded px-3 py-2" required>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-gray-700 mb-2">Contraseña</label>
+                        <input type="password" id="password" class="w-full border rounded px-3 py-2" required>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Ingresar</button>
+                </form>
+                <p class="text-center text-sm text-gray-500 mt-4">Demo: use cualquier email/contraseña (creará usuario en Supabase)</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===================== CONFIGURACIÓN DE SUPABASE =====================
+        const SUPABASE_URL = 'https://timhcltyedhsazlzcneq.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_2oBoopRGy3Tff7wjkwdP2A_RHYbctkQ';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+
+        // Funciones de autenticación
+        async function login(email, password) {
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                // Si no existe, registra
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+                if (signUpError) throw signUpError;
+                return signUpData.user;
+            }
+            return data.user;
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            currentUser = null;
+            document.getElementById('login-container').classList.remove('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+            document.getElementById('user-name').innerText = '';
+            document.getElementById('logout-btn').classList.add('hidden');
+        }
+
+        // Verificar sesión al cargar
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                currentUser = session.user;
+                showMainApp();
+            } else {
+                document.getElementById('login-container').classList.remove('hidden');
+                document.getElementById('main-content').classList.add('hidden');
+            }
+        });
+
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') {
+                currentUser = session.user;
+                showMainApp();
+            } else if (event === 'SIGNED_OUT') {
+                currentUser = null;
+                document.getElementById('login-container').classList.remove('hidden');
+                document.getElementById('main-content').classList.add('hidden');
+            }
+        });
+
+        function showMainApp() {
+            document.getElementById('login-container').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            document.getElementById('user-name').innerText = currentUser.email;
+            document.getElementById('logout-btn').classList.remove('hidden');
+            loadModule('dashboard');
+        }
+
+        // Event listeners
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            try {
+                await login(email, password);
+                Swal.fire('Éxito', 'Sesión iniciada correctamente', 'success');
+            } catch (err) {
+                Swal.fire('Error', err.message, 'error');
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', logout);
+
+        // Navegación
+        document.querySelectorAll('.nav-item').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const module = link.getAttribute('data-module');
+                if (module) loadModule(module);
+                // Marcar activo
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('bg-blue-100', 'text-blue-800'));
+                link.classList.add('bg-blue-100', 'text-blue-800');
+            });
+        });
+
+        function loadModule(module) {
+            const contentDiv = document.getElementById('dynamic-content');
+            contentDiv.innerHTML = '<div class="flex justify-center items-center h-64"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>';
+            setTimeout(async () => {
+                if (module === 'dashboard') await renderDashboard(contentDiv);
+                else if (module === 'empresas') await renderEmpresas(contentDiv);
+                else if (module === 'almacenes') await renderAlmacenes(contentDiv);
+                else if (module === 'productos') await renderProductos(contentDiv);
+                else if (module === 'proveedores') await renderProveedores(contentDiv);
+                else if (module === 'clientes') await renderClientes(contentDiv);
+                else if (module === 'empleados') await renderEmpleados(contentDiv);
+                else if (module === 'compras') await renderCompras(contentDiv);
+                else if (module === 'ventas') await renderVentas(contentDiv);
+                else if (module === 'inventario') await renderInventario(contentDiv);
+                else if (module === 'transporte') await renderTransporte(contentDiv);
+                else if (module === 'reportes') await renderReportes(contentDiv);
+                else contentDiv.innerHTML = '<p>Módulo no encontrado</p>';
+            }, 300);
+        }
+
+        // ===================== MÓDULO DASHBOARD =====================
+        async function renderDashboard(container) {
+            // Obtener datos resumen
+            const { count: empresasCount } = await supabase.from('empresas').select('*', { count: 'exact', head: true });
+            const { count: productosCount } = await supabase.from('productos').select('*', { count: 'exact', head: true });
+            const { data: ventas, error: ventasError } = await supabase.from('ordenes_venta').select('total').eq('estado', 'entregada');
+            const totalVentas = ventas?.reduce((sum, v) => sum + (v.total || 0), 0) || 0;
+
+            container.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded shadow card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-blue-100 rounded-full"><i class="fas fa-building text-blue-600 text-2xl"></i></div>
+                            <div class="ml-4"><h3 class="text-gray-500">Empresas</h3><p class="text-2xl font-bold">${empresasCount || 0}</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded shadow card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-green-100 rounded-full"><i class="fas fa-boxes text-green-600 text-2xl"></i></div>
+                            <div class="ml-4"><h3 class="text-gray-500">Productos</h3><p class="text-2xl font-bold">${productosCount || 0}</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded shadow card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-yellow-100 rounded-full"><i class="fas fa-chart-line text-yellow-600 text-2xl"></i></div>
+                            <div class="ml-4"><h3 class="text-gray-500">Ventas Totales</h3><p class="text-2xl font-bold">S/ ${totalVentas.toFixed(2)}</p></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded shadow">
+                    <h3 class="text-lg font-semibold mb-4">Últimas Órdenes de Venta</h3>
+                    <div id="ultimas-ventas" class="overflow-x-auto"><p class="text-gray-500">Cargando...</p></div>
+                </div>
+            `;
+
+            // Cargar últimas 5 órdenes de venta
+            const { data: ultimas } = await supabase.from('ordenes_venta')
+                .select('numero_ov, fecha_pedido, cliente_id, total, estado')
+                .order('fecha_pedido', { ascending: false })
+                .limit(5);
+            const tabla = `<table class="min-w-full"><thead><tr><th>N° OV</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody>
+                ${ultimas?.map(ov => `<tr><td>${ov.numero_ov}</td><td>${ov.fecha_pedido}</td><td>${ov.cliente_id}</td><td>S/ ${ov.total?.toFixed(2)}</td><td>${ov.estado}</td></tr>`).join('') || '<tr><td colspan="5">No hay datos</td></tr>'}
+            </tbody></table>`;
+            document.getElementById('ultimas-ventas').innerHTML = tabla;
+        }
+
+        // ===================== MÓDULO EMPRESAS =====================
+        async function renderEmpresas(container) {
+            const { data: empresas, error } = await supabase.from('empresas').select('*');
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Empresas</h2>
+                <button onclick="mostrarFormularioEmpresa()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nueva Empresa</button></div>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>RUC</th><th>País</th><th>Moneda</th><th>Acciones</th></tr></thead><tbody>
+                ${empresas?.map(emp => `
+                    <tr><td>${emp.codigo}</td><td>${emp.nombre}</td><td>${emp.ruc}</td><td>${emp.pais}</td><td>${emp.moneda}</td>
+                    <td><button onclick="editarEmpresa(${emp.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> 
+                    <button onclick="eliminarEmpresa(${emp.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
+                `).join('') || '<tr><td colspan="6">No hay registros</td></tr>'}
+                </tbody></table></div>
+            `;
+            window.mostrarFormularioEmpresa = () => mostrarModalEmpresa();
+            window.editarEmpresa = async (id) => { const { data } = await supabase.from('empresas').select('*').eq('id', id).single(); mostrarModalEmpresa(data); };
+            window.eliminarEmpresa = async (id) => {
+                if (!confirm('¿Eliminar empresa? Se perderán datos asociados.')) return;
+                await supabase.from('empresas').delete().eq('id', id);
+                renderEmpresas(container);
+                Swal.fire('Eliminado', 'Empresa eliminada', 'success');
+            };
+        }
+
+        function mostrarModalEmpresa(empresa = null) {
+            Swal.fire({
+                title: empresa ? 'Editar Empresa' : 'Nueva Empresa',
+                html: `
+                    <input id="codigo" class="swal2-input" placeholder="Código" value="${empresa?.codigo || ''}">
+                    <input id="nombre" class="swal2-input" placeholder="Nombre" value="${empresa?.nombre || ''}">
+                    <input id="ruc" class="swal2-input" placeholder="RUC" value="${empresa?.ruc || ''}">
+                    <input id="pais" class="swal2-input" placeholder="País" value="${empresa?.pais || ''}">
+                    <input id="moneda" class="swal2-input" placeholder="Moneda" value="${empresa?.moneda || 'USD'}">
+                `,
+                focusConfirm: false,
+                preConfirm: async () => {
+                    const data = {
+                        codigo: document.getElementById('codigo').value,
+                        nombre: document.getElementById('nombre').value,
+                        ruc: document.getElementById('ruc').value,
+                        pais: document.getElementById('pais').value,
+                        moneda: document.getElementById('moneda').value,
+                        razon_social: document.getElementById('nombre').value,
+                    };
+                    if (empresa) {
+                        await supabase.from('empresas').update(data).eq('id', empresa.id);
+                    } else {
+                        await supabase.from('empresas').insert(data);
+                    }
+                    renderEmpresas(document.getElementById('dynamic-content'));
+                }
+            });
+        }
+
+        // ===================== MÓDULO ALMACENES =====================
+        async function renderAlmacenes(container) {
+            const { data: almacenes } = await supabase.from('almacenes').select('*, empresas(nombre)');
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Almacenes</h2>
+                <button onclick="mostrarFormularioAlmacen()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Almacén</button></div>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>Empresa</th><th>Tipo</th><th>Ciudad</th><th>Capacidad (m³)</th><th>Acciones</th></tr></thead><tbody>
+                ${almacenes?.map(alm => `
+                    <tr><td>${alm.codigo}</td><td>${alm.nombre}</td><td>${alm.empresas?.nombre}</td><td>${alm.tipo}</td><td>${alm.ciudad}</td><td>${alm.capacidad_volumen}</td>
+                    <td><button onclick="editarAlmacen(${alm.id})" class="text-blue-600"><i class="fas fa-edit"></i></button>
+                    <button onclick="eliminarAlmacen(${alm.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
+                `).join('') || '<tr><td colspan="7">No hay registros</td></tr>'}
+                </tbody></table></div>
+            `;
+            window.mostrarFormularioAlmacen = () => mostrarModalAlmacen();
+            window.editarAlmacen = async (id) => { const { data } = await supabase.from('almacenes').select('*').eq('id', id).single(); mostrarModalAlmacen(data); };
+            window.eliminarAlmacen = async (id) => {
+                if (!confirm('¿Eliminar almacén?')) return;
+                await supabase.from('almacenes').delete().eq('id', id);
+                renderAlmacenes(container);
+                Swal.fire('Eliminado', 'Almacén eliminado', 'success');
+            };
+        }
+
+        function mostrarModalAlmacen(almacen = null) {
+            Swal.fire({
+                title: almacen ? 'Editar Almacén' : 'Nuevo Almacén',
+                html: `
+                    <input id="codigo" class="swal2-input" placeholder="Código" value="${almacen?.codigo || ''}">
+                    <input id="nombre" class="swal2-input" placeholder="Nombre" value="${almacen?.nombre || ''}">
+                    <select id="empresa_id" class="swal2-select"></select>
+                    <select id="tipo" class="swal2-select"><option>principal</option><option>secundario</option><option>transitorio</option><option>virtual</option></select>
+                    <input id="ciudad" class="swal2-input" placeholder="Ciudad" value="${almacen?.ciudad || ''}">
+                    <input id="capacidad_volumen" class="swal2-input" placeholder="Capacidad volumen (m³)" value="${almacen?.capacidad_volumen || ''}">
+                `,
+                didOpen: async () => {
+                    const { data: empresas } = await supabase.from('empresas').select('id, nombre');
+                    const select = document.getElementById('empresa_id');
+                    empresas.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp.id;
+                        option.text = emp.nombre;
+                        if (almacen && almacen.empresa_id === emp.id) option.selected = true;
+                        select.appendChild(option);
+                    });
+                },
+                preConfirm: async () => {
+                    const data = {
+                        codigo: document.getElementById('codigo').value,
+                        nombre: document.getElementById('nombre').value,
+                        empresa_id: parseInt(document.getElementById('empresa_id').value),
+                        tipo: document.getElementById('tipo').value,
+                        ciudad: document.getElementById('ciudad').value,
+                        capacidad_volumen: parseFloat(document.getElementById('capacidad_volumen').value) || 0,
+                    };
+                    if (almacen) await supabase.from('almacenes').update(data).eq('id', almacen.id);
+                    else await supabase.from('almacenes').insert(data);
+                    renderAlmacenes(document.getElementById('dynamic-content'));
+                }
+            });
+        }
+
+        // ===================== MÓDULO PRODUCTOS =====================
+        async function renderProductos(container) {
+            const { data: productos } = await supabase.from('productos').select('*');
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Productos</h2>
+                <button onclick="mostrarFormularioProducto()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Producto</button></div>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>SKU</th><th>Nombre</th><th>Categoría</th><th>Marca</th><th>Peso (kg)</th><th>Volumen (m³)</th><th>Acciones</th></tr></thead><tbody>
+                ${productos?.map(prod => `
+                    <tr><td>${prod.sku}</td><td>${prod.nombre}</td><td>${prod.categoria}</td><td>${prod.marca}</td><td>${prod.peso_unitario}</td><td>${prod.volumen_unitario}</td>
+                    <td><button onclick="editarProducto(${prod.id})" class="text-blue-600"><i class="fas fa-edit"></i></button>
+                    <button onclick="eliminarProducto(${prod.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
+                `).join('') || '<tr><td colspan="7">No hay productos</td></tr>'}
+                </tbody></table></div>
+            `;
+            window.mostrarFormularioProducto = () => mostrarModalProducto();
+            window.editarProducto = async (id) => { const { data } = await supabase.from('productos').select('*').eq('id', id).single(); mostrarModalProducto(data); };
+            window.eliminarProducto = async (id) => {
+                if (!confirm('¿Eliminar producto?')) return;
+                await supabase.from('productos').delete().eq('id', id);
+                renderProductos(container);
+                Swal.fire('Eliminado', 'Producto eliminado', 'success');
+            };
+        }
+
+        function mostrarModalProducto(producto = null) {
+            Swal.fire({
+                title: producto ? 'Editar Producto' : 'Nuevo Producto',
+                html: `
+                    <input id="sku" class="swal2-input" placeholder="SKU" value="${producto?.sku || ''}">
+                    <input id="nombre" class="swal2-input" placeholder="Nombre" value="${producto?.nombre || ''}">
+                    <input id="categoria" class="swal2-input" placeholder="Categoría" value="${producto?.categoria || ''}">
+                    <input id="marca" class="swal2-input" placeholder="Marca" value="${producto?.marca || ''}">
+                    <input id="peso_unitario" class="swal2-input" placeholder="Peso unitario (kg)" value="${producto?.peso_unitario || ''}">
+                    <input id="volumen_unitario" class="swal2-input" placeholder="Volumen unitario (m³)" value="${producto?.volumen_unitario || ''}">
+                `,
+                preConfirm: async () => {
+                    const data = {
+                        sku: document.getElementById('sku').value,
+                        nombre: document.getElementById('nombre').value,
+                        categoria: document.getElementById('categoria').value,
+                        marca: document.getElementById('marca').value,
+                        peso_unitario: parseFloat(document.getElementById('peso_unitario').value) || 0,
+                        volumen_unitario: parseFloat(document.getElementById('volumen_unitario').value) || 0,
+                        unidad_peso_id: 1, // simplificado, asume kg
+                        unidad_volumen_id: 4, // m³
+                        unidad_dimension_id: 6, // m
+                    };
+                    if (producto) await supabase.from('productos').update(data).eq('id', producto.id);
+                    else await supabase.from('productos').insert(data);
+                    renderProductos(document.getElementById('dynamic-content'));
+                }
+            });
+        }
+
+        // ===================== MÓDULO PROVEEDORES =====================
+        async function renderProveedores(container) {
+            const { data: proveedores } = await supabase.from('proveedores').select('*');
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Proveedores</h2>
+                <button onclick="mostrarFormularioProveedor()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Proveedor</button></div>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>RUC</th><th>Teléfono</th><th>Ciudad</th><th>Plazo (días)</th><th>Acciones</th></tr></thead><tbody>
+                ${proveedores?.map(prov => `
+                    <tr><td>${prov.codigo}</td><td>${prov.nombre}</td><td>${prov.ruc}</td><td>${prov.contacto_telefono}</td><td>${prov.ciudad}</td><td>${prov.plazo_entrega_dias}</td>
+                    <td><button onclick="editarProveedor(${prov.id})" class="text-blue-600"><i class="fas fa-edit"></i></button>
+                    <button onclick="eliminarProveedor(${prov.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
+                `).join('') || '<tr><td colspan="7">No hay proveedores</td></tr>'}
+                </tbody></table></div>
+            `;
+            window.mostrarFormularioProveedor = () => mostrarModalProveedor();
+            window.editarProveedor = async (id) => { const { data } = await supabase.from('proveedores').select('*').eq('id', id).single(); mostrarModalProveedor(data); };
+            window.eliminarProveedor = async (id) => {
+                if (!confirm('¿Eliminar proveedor?')) return;
+                await supabase.from('proveedores').delete().eq('id', id);
+                renderProveedores(container);
+                Swal.fire('Eliminado', 'Proveedor eliminado', 'success');
+            };
+        }
+
+        function mostrarModalProveedor(proveedor = null) {
+            Swal.fire({
+                title: proveedor ? 'Editar Proveedor' : 'Nuevo Proveedor',
+                html: `
+                    <input id="codigo" class="swal2-input" placeholder="Código" value="${proveedor?.codigo || ''}">
+                    <input id="nombre" class="swal2-input" placeholder="Nombre" value="${proveedor?.nombre || ''}">
+                    <input id="ruc" class="swal2-input" placeholder="RUC" value="${proveedor?.ruc || ''}">
+                    <input id="telefono" class="swal2-input" placeholder="Teléfono" value="${proveedor?.contacto_telefono || ''}">
+                    <input id="ciudad" class="swal2-input" placeholder="Ciudad" value="${proveedor?.ciudad || ''}">
+                    <input id="plazo" class="swal2-input" placeholder="Plazo entrega (días)" value="${proveedor?.plazo_entrega_dias || ''}">
+                `,
+                preConfirm: async () => {
+                    const data = {
+                        codigo: document.getElementById('codigo').value,
+                        nombre: document.getElementById('nombre').value,
+                        ruc: document.getElementById('ruc').value,
+                        contacto_telefono: document.getElementById('telefono').value,
+                        ciudad: document.getElementById('ciudad').value,
+                        plazo_entrega_dias: parseInt(document.getElementById('plazo').value) || 0,
+                    };
+                    if (proveedor) await supabase.from('proveedores').update(data).eq('id', proveedor.id);
+                    else await supabase.from('proveedores').insert(data);
+                    renderProveedores(document.getElementById('dynamic-content'));
+                }
+            });
+        }
+
+        // ===================== MÓDULO CLIENTES =====================
+        async function renderClientes(container) {
+            const { data: clientes } = await supabase.from('clientes').select('*');
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Clientes</h2>
+                <button onclick="mostrarFormularioCliente()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Cliente</button></div>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>Documento</th><th>Teléfono</th><th>Email</th><th>Crédito</th><th>Acciones</th></tr></thead><tbody>
+                ${clientes?.map(cli => `
+                    <tr><td>${cli.codigo}</td><td>${cli.nombre}</td><td>${cli.documento}</td><td>${cli.telefono}</td><td>${cli.email}</td><td>${cli.limite_credito}</td>
+                    <td><button onclick="editarCliente(${cli.id})" class="text-blue-600"><i class="fas fa-edit"></i></button>
+                    <button onclick="eliminarCliente(${cli.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
+                `).join('') || '<tr><td colspan="7">No hay clientes</td></tr>'}
+                </tbody></table></div>
+            `;
+            window.mostrarFormularioCliente = () => mostrarModalCliente();
+            window.editarCliente = async (id) => { const { data } = await supabase.from('clientes').select('*').eq('id', id).single(); mostrarModalCliente(data); };
+            window.eliminarCliente = async (id) => {
+                if (!confirm('¿Eliminar cliente?')) return;
+                await supabase.from('clientes').delete().eq('id', id);
+                renderClientes(container);
+                Swal.fire('Eliminado', 'Cliente eliminado', 'success');
+            };
+        }
+
+        function mostrarModalCliente(cliente = null) {
+            Swal.fire({
+                title: cliente ? 'Editar Cliente' : 'Nuevo Cliente',
+                html: `
+                    <input id="codigo" class="swal2-input" placeholder="Código" value="${cliente?.codigo || ''}">
+                    <input id="nombre" class="swal2-input" placeholder="Nombre" value="${cliente?.nombre || ''}">
+                    <input id="documento" class="swal2-input" placeholder="Documento" value="${cliente?.documento || ''}">
+                    <input id="telefono" class="swal2-input" placeholder="Teléfono" value="${cliente?.telefono || ''}">
+                    <input id="email" class="swal2-input" placeholder="Email" value="${cliente?.email || ''}">
+                    <input id="limite_credito" class="swal2-input" placeholder="Límite crédito" value="${cliente?.limite_credito || ''}">
+                `,
+                preConfirm: async () => {
+                    const data = {
+                        codigo: document.getElementById('codigo').value,
+                        nombre: document.getElementById('nombre').value,
+                        documento: document.getElementById('documento').value,
+                        telefono: document.getElementById('telefono').value,
+                        email: document.getElementById('email').value,
+                        limite_credito: parseFloat(document.getElementById('limite_credito').value) || 0,
+                        tipo_documento: 'RUC', // simplificado
+                    };
+                    if (cliente) await supabase.from('clientes').update(data).eq('id', cliente.id);
+                    else await supabase.from('clientes').insert(data);
+                    renderClientes(document.getElementById('dynamic-content'));
+                }
+            });
+        }
+
+        // ===================== MÓDULO EMPLEADOS =====================
+        async function renderEmpleados(container) {
+            const { data: empleados } = await supabase.from('empleados').select('*, puestos(nombre)');
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Empleados</h2>
+                <button onclick="mostrarFormularioEmpleado()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Empleado</button></div>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>Email</th><th>Puesto</th><th>Supervisor</th><th>Almacén</th><th>Acciones</th></tr></thead><tbody>
+                ${empleados?.map(emp => `
+                    <tr><td>${emp.codigo}</td><td>${emp.nombre} ${emp.apellido}</td><td>${emp.email}</td><td>${emp.puestos?.nombre}</td><td>${emp.supervisor_id}</td><td>${emp.almacen_asignado_id}</td>
+                    <td><button onclick="editarEmpleado(${emp.id})" class="text-blue-600"><i class="fas fa-edit"></i></button>
+                    <button onclick="eliminarEmpleado(${emp.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>
+                `).join('') || '<tr><td colspan="7">No hay empleados</td></tr>'}
+                </tbody></table></div>
+            `;
+            window.mostrarFormularioEmpleado = () => mostrarModalEmpleado();
+            window.editarEmpleado = async (id) => { const { data } = await supabase.from('empleados').select('*').eq('id', id).single(); mostrarModalEmpleado(data); };
+            window.eliminarEmpleado = async (id) => {
+                if (!confirm('¿Eliminar empleado?')) return;
+                await supabase.from('empleados').delete().eq('id', id);
+                renderEmpleados(container);
+                Swal.fire('Eliminado', 'Empleado eliminado', 'success');
+            };
+        }
+
+        function mostrarModalEmpleado(empleado = null) {
+            Swal.fire({
+                title: empleado ? 'Editar Empleado' : 'Nuevo Empleado',
+                html: `
+                    <input id="codigo" class="swal2-input" placeholder="Código" value="${empleado?.codigo || ''}">
+                    <input id="nombre" class="swal2-input" placeholder="Nombre" value="${empleado?.nombre || ''}">
+                    <input id="apellido" class="swal2-input" placeholder="Apellido" value="${empleado?.apellido || ''}">
+                    <input id="email" class="swal2-input" placeholder="Email" value="${empleado?.email || ''}">
+                    <select id="puesto_id" class="swal2-select"></select>
+                `,
+                didOpen: async () => {
+                    const { data: puestos } = await supabase.from('puestos').select('id, nombre');
+                    const select = document.getElementById('puesto_id');
+                    puestos.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id;
+                        opt.text = p.nombre;
+                        if (empleado && empleado.puesto_id === p.id) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                },
+                preConfirm: async () => {
+                    const data = {
+                        codigo: document.getElementById('codigo').value,
+                        nombre: document.getElementById('nombre').value,
+                        apellido: document.getElementById('apellido').value,
+                        email: document.getElementById('email').value,
+                        puesto_id: parseInt(document.getElementById('puesto_id').value),
+                    };
+                    if (empleado) await supabase.from('empleados').update(data).eq('id', empleado.id);
+                    else await supabase.from('empleados').insert(data);
+                    renderEmpleados(document.getElementById('dynamic-content'));
+                }
+            });
+        }
+
+        // ===================== MÓDULO COMPRAS =====================
+        async function renderCompras(container) {
+            const { data: ordenes } = await supabase.from('ordenes_compra').select('*, proveedores(nombre)').order('fecha_emision', { ascending: false }).limit(20);
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Órdenes de Compra</h2>
+                <button onclick="mostrarFormularioOC()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nueva OC</button></div>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>N° OC</th><th>Proveedor</th><th>Fecha Emisión</th><th>Estado</th><th>Total</th><th>Acciones</th></tr></thead><tbody>
+                ${ordenes?.map(oc => `
+                    <tr><td>${oc.numero_oc}</td><td>${oc.proveedores?.nombre}</td><td>${oc.fecha_emision}</td><td>${oc.estado}</td><td>S/ ${oc.total?.toFixed(2)}</td>
+                    <td><button onclick="verDetalleOC(${oc.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>
+                `).join('') || '<tr><td colspan="6">No hay órdenes</td></tr>'}
+                </tbody></table></div>
+            `;
+            window.mostrarFormularioOC = () => mostrarModalOC();
+            window.verDetalleOC = async (id) => {
+                const { data: oc } = await supabase.from('ordenes_compra').select('*, proveedores(*)').eq('id', id).single();
+                const { data: detalles } = await supabase.from('oc_detalles').select('*, productos(nombre)').eq('orden_compra_id', id);
+                Swal.fire({
+                    title: `OC ${oc.numero_oc}`,
+                    html: `<div class="text-left"><p><strong>Proveedor:</strong> ${oc.proveedores.nombre}</p>
+                           <p><strong>Fecha:</strong> ${oc.fecha_emision}</p>
+                           <p><strong>Estado:</strong> ${oc.estado}</p>
+                           <p><strong>Total:</strong> S/ ${oc.total}</p>
+                           <hr><h4>Detalles</h4><ul>${detalles?.map(d => `<li>${d.productos?.nombre} - ${d.cantidad_solicitada} x S/ ${d.precio_unitario}</li>`).join('')}</ul></div>`,
+                    width: '600px'
+                });
+            };
+        }
+
+        function mostrarModalOC() {
+            Swal.fire({
+                title: 'Nueva Orden de Compra',
+                html: `
+                    <select id="proveedor_id" class="swal2-select"></select>
+                    <input id="fecha_emision" type="date" class="swal2-input" value="${new Date().toISOString().slice(0,10)}">
+                    <button id="add-item-oc" class="bg-blue-500 text-white px-2 py-1 rounded">Agregar Producto</button>
+                    <div id="items-oc"></div>
+                `,
+                didOpen: async () => {
+                    const { data: proveedores } = await supabase.from('proveedores').select('id, nombre');
+                    const select = document.getElementById('proveedor_id');
+                    proveedores.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id;
+                        opt.text = p.nombre;
+                        select.appendChild(opt);
+                    });
+                    document.getElementById('add-item-oc').addEventListener('click', () => {
+                        const container = document.getElementById('items-oc');
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <select class="producto-select mt-2"></select>
+                            <input type="number" placeholder="Cantidad" class="cantidad-input ml-2 w-24">
+                            <input type="number" placeholder="Precio" class="precio-input ml-2 w-24">
+                            <button class="remove-item text-red-600 ml-2">X</button>
+                        `;
+                        container.appendChild(div);
+                        supabase.from('productos').select('id, nombre').then(({ data }) => {
+                            const sel = div.querySelector('.producto-select');
+                            data.forEach(prod => {
+                                const opt = document.createElement('option');
+                                opt.value = prod.id;
+                                opt.text = prod.nombre;
+                                sel.appendChild(opt);
+                            });
+                        });
+                        div.querySelector('.remove-item').addEventListener('click', () => div.remove());
+                    });
+                },
+                preConfirm: async () => {
+                    const proveedor_id = parseInt(document.getElementById('proveedor_id').value);
+                    const fecha_emision = document.getElementById('fecha_emision').value;
+                    const items = [];
+                    document.querySelectorAll('#items-oc > div').forEach(div => {
+                        const producto_id = div.querySelector('.producto-select').value;
+                        const cantidad = div.querySelector('.cantidad-input').value;
+                        const precio = div.querySelector('.precio-input').value;
+                        if (producto_id && cantidad && precio) {
+                            items.push({ producto_id: parseInt(producto_id), cantidad: parseFloat(cantidad), precio: parseFloat(precio) });
+                        }
+                    });
+                    if (items.length === 0) throw new Error('Agregue al menos un producto');
+                    const { data: oc, error } = await supabase.from('ordenes_compra').insert({
+                        numero_oc: 'OC-' + Date.now(),
+                        proveedor_id,
+                        fecha_emision,
+                        estado: 'borrador',
+                        moneda: 'PEN',
+                        subtotal: 0, total: 0
+                    }).select().single();
+                    if (error) throw error;
+                    for (const item of items) {
+                        await supabase.from('oc_detalles').insert({
+                            orden_compra_id: oc.id,
+                            producto_id: item.producto_id,
+                            cantidad_solicitada: item.cantidad,
+                            cantidad_recibida: 0,
+                            precio_unitario: item.precio,
+                            unidad_compra_id: 8,
+                            factor_conversion: 1
+                        });
+                    }
+                    const subtotal = items.reduce((sum, i) => sum + i.cantidad * i.precio, 0);
+                    await supabase.from('ordenes_compra').update({ subtotal, total: subtotal * 1.18 }).eq('id', oc.id);
+                    renderCompras(document.getElementById('dynamic-content'));
+                    return true;
+                }
+            });
+        }
+
+        // ===================== MÓDULO VENTAS =====================
+        async function renderVentas(container) {
+            const { data: ventas } = await supabase.from('ordenes_venta').select('*, clientes(nombre)').order('fecha_pedido', { ascending: false }).limit(20);
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Órdenes de Venta</h2>
+                <button onclick="mostrarFormularioOV()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nueva OV</button></div>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>N° OV</th><th>Cliente</th><th>Fecha Pedido</th><th>Estado</th><th>Total</th><th>Acciones</th></tr></thead><tbody>
+                ${ventas?.map(ov => `
+                    <tr><td>${ov.numero_ov}</td><td>${ov.clientes?.nombre}</td><td>${ov.fecha_pedido}</td><td>${ov.estado}</td><td>S/ ${ov.total?.toFixed(2)}</td>
+                    <td><button onclick="verDetalleOV(${ov.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>
+                `).join('') || '<tr><td colspan="6">No hay órdenes</td></tr>'}
+                </tbody></table></div>
+            `;
+            window.mostrarFormularioOV = () => mostrarModalOV();
+            window.verDetalleOV = async (id) => {
+                const { data: ov } = await supabase.from('ordenes_venta').select('*, clientes(*)').eq('id', id).single();
+                const { data: detalles } = await supabase.from('ov_detalles').select('*, productos(nombre)').eq('orden_venta_id', id);
+                Swal.fire({
+                    title: `OV ${ov.numero_ov}`,
+                    html: `<div class="text-left"><p><strong>Cliente:</strong> ${ov.clientes.nombre}</p>
+                           <p><strong>Fecha:</strong> ${ov.fecha_pedido}</p>
+                           <p><strong>Estado:</strong> ${ov.estado}</p>
+                           <p><strong>Total:</strong> S/ ${ov.total}</p>
+                           <hr><h4>Detalles</h4><ul>${detalles?.map(d => `<li>${d.productos?.nombre} - ${d.cantidad} x S/ ${d.precio_unitario}</li>`).join('')}</ul></div>`,
+                    width: '600px'
+                });
+            };
+        }
+
+        function mostrarModalOV() {
+            Swal.fire({
+                title: 'Nueva Orden de Venta',
+                html: `
+                    <select id="cliente_id" class="swal2-select"></select>
+                    <input id="fecha_pedido" type="date" class="swal2-input" value="${new Date().toISOString().slice(0,10)}">
+                    <button id="add-item-ov" class="bg-blue-500 text-white px-2 py-1 rounded">Agregar Producto</button>
+                    <div id="items-ov"></div>
+                `,
+                didOpen: async () => {
+                    const { data: clientes } = await supabase.from('clientes').select('id, nombre');
+                    const select = document.getElementById('cliente_id');
+                    clientes.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.text = c.nombre;
+                        select.appendChild(opt);
+                    });
+                    document.getElementById('add-item-ov').addEventListener('click', () => {
+                        const container = document.getElementById('items-ov');
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <select class="producto-select mt-2"></select>
+                            <input type="number" placeholder="Cantidad" class="cantidad-input ml-2 w-24">
+                            <input type="number" placeholder="Precio" class="precio-input ml-2 w-24">
+                            <button class="remove-item text-red-600 ml-2">X</button>
+                        `;
+                        container.appendChild(div);
+                        supabase.from('productos').select('id, nombre').then(({ data }) => {
+                            const sel = div.querySelector('.producto-select');
+                            data.forEach(prod => {
+                                const opt = document.createElement('option');
+                                opt.value = prod.id;
+                                opt.text = prod.nombre;
+                                sel.appendChild(opt);
+                            });
+                        });
+                        div.querySelector('.remove-item').addEventListener('click', () => div.remove());
+                    });
+                },
+                preConfirm: async () => {
+                    const cliente_id = parseInt(document.getElementById('cliente_id').value);
+                    const fecha_pedido = document.getElementById('fecha_pedido').value;
+                    const items = [];
+                    document.querySelectorAll('#items-ov > div').forEach(div => {
+                        const producto_id = div.querySelector('.producto-select').value;
+                        const cantidad = div.querySelector('.cantidad-input').value;
+                        const precio = div.querySelector('.precio-input').value;
+                        if (producto_id && cantidad && precio) {
+                            items.push({ producto_id: parseInt(producto_id), cantidad: parseFloat(cantidad), precio: parseFloat(precio) });
+                        }
+                    });
+                    if (items.length === 0) throw new Error('Agregue al menos un producto');
+                    const { data: ov, error } = await supabase.from('ordenes_venta').insert({
+                        numero_ov: 'OV-' + Date.now(),
+                        cliente_id,
+                        fecha_pedido,
+                        estado: 'creada',
+                        moneda: 'PEN',
+                        subtotal: 0, total: 0
+                    }).select().single();
+                    if (error) throw error;
+                    for (const item of items) {
+                        await supabase.from('ov_detalles').insert({
+                            orden_venta_id: ov.id,
+                            producto_id: item.producto_id,
+                            cantidad: item.cantidad,
+                            precio_unitario: item.precio
+                        });
+                    }
+                    const subtotal = items.reduce((sum, i) => sum + i.cantidad * i.precio, 0);
+                    await supabase.from('ordenes_venta').update({ subtotal, total: subtotal * 1.18 }).eq('id', ov.id);
+                    renderVentas(document.getElementById('dynamic-content'));
+                    return true;
+                }
+            });
+        }
+
+        // ===================== MÓDULO INVENTARIO =====================
+        async function renderInventario(container) {
+            const { data: inventario } = await supabase.from('inventario_ubicacion').select('*, productos(nombre, sku), ubicaciones(codigo)');
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Inventario por Ubicación</h2></div>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Producto</th><th>SKU</th><th>Ubicación</th><th>Lote</th><th>Cantidad</th><th>Reservado</th><th>Vencimiento</th></tr></thead><tbody>
+                ${inventario?.map(inv => `
+                    <tr><td>${inv.productos?.nombre}</td><td>${inv.productos?.sku}</td><td>${inv.ubicaciones?.codigo}</td><td>${inv.lote}</td><td>${inv.cantidad}</td><td>${inv.reservado}</td><td>${inv.fecha_vencimiento || '-'}</td></tr>
+                `).join('') || '<tr><td colspan="7">No hay inventario</td></tr>'}
+                </tbody></table></div>
+            `;
+        }
+
+        // ===================== MÓDULO TRANSPORTE =====================
+        async function renderTransporte(container) {
+            const { data: manifiestos } = await supabase.from('manifiestos').select('*, transportistas(nombre), vehiculos(placa), conductores(nombre)').order('fecha_salida', { ascending: false }).limit(20);
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Manifiestos</h2>
+                <button onclick="mostrarFormularioManifiesto()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Manifiesto</button></div>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>ID</th><th>Transportista</th><th>Vehículo</th><th>Conductor</th><th>Salida</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+                ${manifiestos?.map(m => `
+                    <tr><td>${m.id}</td><td>${m.transportistas?.nombre}</td><td>${m.vehiculos?.placa}</td><td>${m.conductores?.nombre}</td><td>${m.fecha_salida}</td><td>${m.estado}</td>
+                    <td><button onclick="verDetalleManifiesto(${m.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>
+                `).join('') || '<tr><td colspan="7">No hay manifiestos</td></tr>'}
+                </tbody></table></div>
+            `;
+            window.mostrarFormularioManifiesto = () => mostrarModalManifiesto();
+            window.verDetalleManifiesto = async (id) => {
+                const { data: m } = await supabase.from('manifiestos').select('*, transportistas(*), vehiculos(*), conductores(*)').eq('id', id).single();
+                Swal.fire({
+                    title: `Manifiesto ${m.id}`,
+                    html: `<div class="text-left"><p><strong>Transportista:</strong> ${m.transportistas.nombre}</p>
+                           <p><strong>Vehículo:</strong> ${m.vehiculos?.placa} (${m.vehiculos?.tipo_vehiculo})</p>
+                           <p><strong>Conductor:</strong> ${m.conductores?.nombre}</p>
+                           <p><strong>Salida:</strong> ${m.fecha_salida}</p>
+                           <p><strong>Llegada estimada:</strong> ${m.fecha_estimada_llegada}</p>
+                           <p><strong>Estado:</strong> ${m.estado}</p>
+                           <p><strong>Costo:</strong> S/ ${m.costo_transporte}</p></div>`,
+                    width: '600px'
+                });
+            };
+        }
+
+        function mostrarModalManifiesto() {
+            Swal.fire({
+                title: 'Nuevo Manifiesto',
+                html: `
+                    <select id="transportista_id" class="swal2-select"></select>
+                    <select id="vehiculo_id" class="swal2-select mt-2"></select>
+                    <select id="conductor_id" class="swal2-select mt-2"></select>
+                    <input id="fecha_salida" type="datetime-local" class="swal2-input" value="${new Date().toISOString().slice(0,16)}">
+                    <input id="fecha_estimada" type="datetime-local" class="swal2-input">
+                    <select id="tipo_servicio" class="swal2-select"><option>estandar</option><option>express</option><option>refrigerado</option></select>
+                    <input id="costo" type="number" class="swal2-input" placeholder="Costo transporte">
+                `,
+                didOpen: async () => {
+                    const { data: transportistas } = await supabase.from('transportistas').select('id, nombre');
+                    const selectT = document.getElementById('transportista_id');
+                    transportistas.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.text = t.nombre;
+                        selectT.appendChild(opt);
+                    });
+                    const { data: vehiculos } = await supabase.from('vehiculos').select('id, placa');
+                    const selectV = document.getElementById('vehiculo_id');
+                    vehiculos.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.id;
+                        opt.text = v.placa;
+                        selectV.appendChild(opt);
+                    });
+                    const { data: conductores } = await supabase.from('conductores').select('id, nombre');
+                    const selectC = document.getElementById('conductor_id');
+                    conductores.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.text = c.nombre;
+                        selectC.appendChild(opt);
+                    });
+                },
+                preConfirm: async () => {
+                    const data = {
+                        transportista_id: parseInt(document.getElementById('transportista_id').value),
+                        vehiculo_id: parseInt(document.getElementById('vehiculo_id').value),
+                        conductor_id: parseInt(document.getElementById('conductor_id').value),
+                        fecha_salida: document.getElementById('fecha_salida').value,
+                        fecha_estimada_llegada: document.getElementById('fecha_estimada').value || null,
+                        tipo_servicio: document.getElementById('tipo_servicio').value,
+                        costo_transporte: parseFloat(document.getElementById('costo').value) || 0,
+                        estado: 'programado'
+                    };
+                    await supabase.from('manifiestos').insert(data);
+                    renderTransporte(document.getElementById('dynamic-content'));
+                    return true;
+                }
+            });
+        }
+
+        // ===================== MÓDULO REPORTES =====================
+        async function renderReportes(container) {
+            // Obtener datos para gráficos
+            const { data: ventasPorMes } = await supabase.rpc('ventas_por_mes'); // Función personalizada en Supabase
+            // Como no tenemos función, hacemos consulta manual
+            const { data: ventas } = await supabase.from('ordenes_venta').select('fecha_pedido, total');
+            const ventasMensuales = {};
+            ventas?.forEach(v => {
+                const mes = new Date(v.fecha_pedido).toLocaleString('es', { month: 'short' });
+                ventasMensuales[mes] = (ventasMensuales[mes] || 0) + v.total;
+            });
+            const labels = Object.keys(ventasMensuales);
+            const values = Object.values(ventasMensuales);
+
+            container.innerHTML = `
+                <h2 class="text-2xl font-bold mb-4">Reportes</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-2">Ventas por Mes</h3>
+                        <canvas id="ventasChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="text-lg font-semibold mb-2">Top 5 Productos Más Vendidos</h3>
+                        <div id="topProductos"></div>
+                    </div>
+                </div>
+            `;
+            // Gráfico
+            const ctx = document.getElementById('ventasChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [{ label: 'Ventas (S/)', data: values, backgroundColor: 'rgba(54, 162, 235, 0.5)' }] }
+            });
+            // Top productos
+            const { data: top } = await supabase
+                .from('ov_detalles')
+                .select('producto_id, productos(nombre), cantidad')
+                .then(async (res) => {
+                    const grouped = {};
+                    res.data?.forEach(d => {
+                        grouped[d.producto_id] = (grouped[d.producto_id] || 0) + d.cantidad;
+                    });
+                    const sorted = Object.entries(grouped).sort((a,b) => b[1] - a[1]).slice(0,5);
+                    const productosNombres = await Promise.all(sorted.map(async ([id, total]) => {
+                        const { data: prod } = await supabase.from('productos').select('nombre').eq('id', id).single();
+                        return `${prod.nombre}: ${total} unidades`;
+                    }));
+                    document.getElementById('topProductos').innerHTML = `<ul>${productosNombres.map(p => `<li>${p}</li>`).join('')}</ul>`;
+                });
+        }
+    </script>
+</body>
+</html>
