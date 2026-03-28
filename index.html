@@ -96,7 +96,7 @@
     </div>
 
     <script>
-        // ÚNICA declaración de supabase
+        // Configuración de Supabase (tu URL y clave anónima)
         const SUPABASE_URL = 'https://timhcltyedhsazlzcneq.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_2oBoopRGy3Tff7wjkwdP2A_RHYbctkQ';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -156,8 +156,8 @@
             `;
             const { data: ultimas } = await supabase.from('ordenes_venta').select('numero_ov, fecha_pedido, cliente_id, total, estado').order('fecha_pedido', { ascending: false }).limit(5);
             const tabla = `<table class="min-w-full"><thead> <th>N° OV</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th> </thead><tbody>${
-                ultimas?.map(ov => `tr><td>${ov.numero_ov}</td><td>${ov.fecha_pedido}</td><td>${ov.cliente_id}</td><td>S/ ${ov.total?.toFixed(2)}</td><td>${ov.estado}</td></tr`).join('') || 'tr><td colspan="5">No hay datos</td></tr'
-            }</tbody></table>`;
+                ultimas?.map(ov => `tr> <td>${ov.numero_ov}</td><td>${ov.fecha_pedido}</td><td>${ov.cliente_id}</td><td>S/ ${ov.total?.toFixed(2)}</td><td>${ov.estado}</td> </tr`).join('') || '<tr><td colspan="5">No hay datos</td></tr>'
+            }</tbody> </table>`;
             document.getElementById('ultimas-ventas').innerHTML = tabla;
         }
 
@@ -167,14 +167,14 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Empresas</h2>
                 <button onclick="mostrarFormularioEmpresa()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nueva Empresa</button></div>
-                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>RUC</th><th>País</th><th>Moneda</th><th>Acciones</th></tr></thead><tbody>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead> <th>Código</th><th>Nombre</th><th>RUC</th><th>País</th><th>Moneda</th><th>Acciones</th> </thead><tbody>
                 ${empresas?.map(emp => `<tr><td>${emp.codigo}</td><td>${emp.nombre}</td><td>${emp.ruc}</td><td>${emp.pais}</td><td>${emp.moneda}</td><td><button onclick="editarEmpresa(${emp.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarEmpresa(${emp.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="6">No hay registros</td></tr>'}
-                </tbody></table></div>
+                </tbody> </table></div>
             `;
             window.mostrarFormularioEmpresa = () => mostrarModalEmpresa();
             window.editarEmpresa = async (id) => { const { data } = await supabase.from('empresas').select('*').eq('id', id).single(); mostrarModalEmpresa(data); };
             window.eliminarEmpresa = async (id) => {
-                if (!confirm('¿Eliminar empresa?')) return;
+                if (!confirm('¿Eliminar empresa? Se perderán datos asociados.')) return;
                 await supabase.from('empresas').delete().eq('id', id);
                 renderEmpresas(container);
                 Swal.fire('Eliminado', 'Empresa eliminada', 'success');
@@ -213,9 +213,9 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Almacenes</h2>
                 <button onclick="mostrarFormularioAlmacen()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Almacén</button></div>
-                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>Empresa</th><th>Tipo</th><th>Ciudad</th><th>Capacidad (m³)</th><th>Acciones</th></tr></thead><tbody>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead> <th>Código</th><th>Nombre</th><th>Empresa</th><th>Tipo</th><th>Ciudad</th><th>Capacidad (m³)</th><th>Acciones</th> </thead><tbody>
                 ${almacenes?.map(alm => `<tr><td>${alm.codigo}</td><td>${alm.nombre}</td><td>${alm.empresas?.nombre}</td><td>${alm.tipo}</td><td>${alm.ciudad}</td><td>${alm.capacidad_volumen}</td><td><button onclick="editarAlmacen(${alm.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarAlmacen(${alm.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay registros</td></tr>'}
-                </tbody></table></div>
+                </tbody> </table></div>
             `;
             window.mostrarFormularioAlmacen = () => mostrarModalAlmacen();
             window.editarAlmacen = async (id) => { const { data } = await supabase.from('almacenes').select('*').eq('id', id).single(); mostrarModalAlmacen(data); };
@@ -271,9 +271,9 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Productos</h2>
                 <button onclick="mostrarFormularioProducto()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Producto</button></div>
-                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>SKU</th><th>Nombre</th><th>Categoría</th><th>Marca</th><th>Peso (kg)</th><th>Volumen (m³)</th><th>Acciones</th></tr></thead><tbody>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead> <th>SKU</th><th>Nombre</th><th>Categoría</th><th>Marca</th><th>Peso (kg)</th><th>Volumen (m³)</th><th>Acciones</th> </thead><tbody>
                 ${productos?.map(prod => `<tr><td>${prod.sku}</td><td>${prod.nombre}</td><td>${prod.categoria}</td><td>${prod.marca}</td><td>${prod.peso_unitario}</td><td>${prod.volumen_unitario}</td><td><button onclick="editarProducto(${prod.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarProducto(${prod.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay productos</td></tr>'}
-                </tbody></table></div>
+                </tbody> </table></div>
             `;
             window.mostrarFormularioProducto = () => mostrarModalProducto();
             window.editarProducto = async (id) => { const { data } = await supabase.from('productos').select('*').eq('id', id).single(); mostrarModalProducto(data); };
@@ -305,8 +305,8 @@
                         peso_unitario: parseFloat(document.getElementById('peso_unitario').value) || 0,
                         volumen_unitario: parseFloat(document.getElementById('volumen_unitario').value) || 0,
                         unidad_peso_id: 1,
-                        unidad_volumen_id: 4,
-                        unidad_dimension_id: 6,
+                        unidad_volumen_id: 2,
+                        unidad_dimension_id: 1,
                     };
                     if (producto) await supabase.from('productos').update(data).eq('id', producto.id);
                     else await supabase.from('productos').insert(data);
@@ -321,9 +321,9 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Proveedores</h2>
                 <button onclick="mostrarFormularioProveedor()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Proveedor</button></div>
-                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>RUC</th><th>Teléfono</th><th>Ciudad</th><th>Plazo (días)</th><th>Acciones</th></tr></thead><tbody>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead> <th>Código</th><th>Nombre</th><th>RUC</th><th>Teléfono</th><th>Ciudad</th><th>Plazo (días)</th><th>Acciones</th> </thead><tbody>
                 ${proveedores?.map(prov => `<tr><td>${prov.codigo}</td><td>${prov.nombre}</td><td>${prov.ruc}</td><td>${prov.contacto_telefono}</td><td>${prov.ciudad}</td><td>${prov.plazo_entrega_dias}</td><td><button onclick="editarProveedor(${prov.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarProveedor(${prov.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay proveedores</td></tr>'}
-                </tbody></table></div>
+                </tbody> </table></div>
             `;
             window.mostrarFormularioProveedor = () => mostrarModalProveedor();
             window.editarProveedor = async (id) => { const { data } = await supabase.from('proveedores').select('*').eq('id', id).single(); mostrarModalProveedor(data); };
@@ -368,9 +368,9 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Clientes</h2>
                 <button onclick="mostrarFormularioCliente()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Cliente</button></div>
-                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>Documento</th><th>Teléfono</th><th>Email</th><th>Crédito</th><th>Acciones</th></tr></thead><tbody>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead> <th>Código</th><th>Nombre</th><th>Documento</th><th>Teléfono</th><th>Email</th><th>Crédito</th><th>Acciones</th> </thead><tbody>
                 ${clientes?.map(cli => `<tr><td>${cli.codigo}</td><td>${cli.nombre}</td><td>${cli.documento}</td><td>${cli.telefono}</td><td>${cli.email}</td><td>${cli.limite_credito}</td><td><button onclick="editarCliente(${cli.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarCliente(${cli.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay clientes</td></tr>'}
-                </tbody></table></div>
+                </tbody> </table></div>
             `;
             window.mostrarFormularioCliente = () => mostrarModalCliente();
             window.editarCliente = async (id) => { const { data } = await supabase.from('clientes').select('*').eq('id', id).single(); mostrarModalCliente(data); };
@@ -416,9 +416,9 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Empleados</h2>
                 <button onclick="mostrarFormularioEmpleado()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Empleado</button></div>
-                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Código</th><th>Nombre</th><th>Email</th><th>Puesto</th><th>Supervisor</th><th>Almacén</th><th>Acciones</th></tr></thead><tbody>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead> <th>Código</th><th>Nombre</th><th>Email</th><th>Puesto</th><th>Supervisor</th><th>Almacén</th><th>Acciones</th> </thead><tbody>
                 ${empleados?.map(emp => `<tr><td>${emp.codigo}</td><td>${emp.nombre} ${emp.apellido}</td><td>${emp.email}</td><td>${emp.puestos?.nombre}</td><td>${emp.supervisor_id}</td><td>${emp.almacen_asignado_id}</td><td><button onclick="editarEmpleado(${emp.id})" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="eliminarEmpleado(${emp.id})" class="text-red-600 ml-2"><i class="fas fa-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay empleados</td></tr>'}
-                </tbody></table></div>
+                </tbody> </table></div>
             `;
             window.mostrarFormularioEmpleado = () => mostrarModalEmpleado();
             window.editarEmpleado = async (id) => { const { data } = await supabase.from('empleados').select('*').eq('id', id).single(); mostrarModalEmpleado(data); };
@@ -472,9 +472,9 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Órdenes de Compra</h2>
                 <button onclick="mostrarFormularioOC()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nueva OC</button></div>
-                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>N° OC</th><th>Proveedor</th><th>Fecha Emisión</th><th>Estado</th><th>Total</th><th>Acciones</th></tr></thead><tbody>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead> <th>N° OC</th><th>Proveedor</th><th>Fecha Emisión</th><th>Estado</th><th>Total</th><th>Acciones</th> </thead><tbody>
                 ${ordenes?.map(oc => `<tr><td>${oc.numero_oc}</td><td>${oc.proveedores?.nombre}</td><td>${oc.fecha_emision}</td><td>${oc.estado}</td><td>S/ ${oc.total?.toFixed(2)}</td><td><button onclick="verDetalleOC(${oc.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>`).join('') || '<tr><td colspan="6">No hay órdenes</td></tr>'}
-                </tbody></table></div>
+                </tbody> </table></div>
             `;
             window.mostrarFormularioOC = () => mostrarModalOC();
             window.verDetalleOC = async (id) => {
@@ -537,7 +537,7 @@
                     const { data: oc, error } = await supabase.from('ordenes_compra').insert({ numero_oc: 'OC-' + Date.now(), proveedor_id, fecha_emision, estado: 'borrador', moneda: 'PEN', subtotal: 0, total: 0 }).select().single();
                     if (error) throw error;
                     for (const item of items) {
-                        await supabase.from('oc_detalles').insert({ orden_compra_id: oc.id, producto_id: item.producto_id, cantidad_solicitada: item.cantidad, cantidad_recibida: 0, precio_unitario: item.precio, unidad_compra_id: 8, factor_conversion: 1 });
+                        await supabase.from('oc_detalles').insert({ orden_compra_id: oc.id, producto_id: item.producto_id, cantidad_solicitada: item.cantidad, cantidad_recibida: 0, precio_unitario: item.precio, unidad_compra_id: 3, factor_conversion: 1 });
                     }
                     const subtotal = items.reduce((sum, i) => sum + i.cantidad * i.precio, 0);
                     await supabase.from('ordenes_compra').update({ subtotal, total: subtotal * 1.18 }).eq('id', oc.id);
@@ -553,9 +553,9 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Órdenes de Venta</h2>
                 <button onclick="mostrarFormularioOV()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nueva OV</button></div>
-                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>N° OV</th><th>Cliente</th><th>Fecha Pedido</th><th>Estado</th><th>Total</th><th>Acciones</th></tr></thead><tbody>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead> <th>N° OV</th><th>Cliente</th><th>Fecha Pedido</th><th>Estado</th><th>Total</th><th>Acciones</th> </thead><tbody>
                 ${ventas?.map(ov => `<tr><td>${ov.numero_ov}</td><td>${ov.clientes?.nombre}</td><td>${ov.fecha_pedido}</td><td>${ov.estado}</td><td>S/ ${ov.total?.toFixed(2)}</td><td><button onclick="verDetalleOV(${ov.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>`).join('') || '<tr><td colspan="6">No hay órdenes</td></tr>'}
-                </tbody></table></div>
+                </tbody> </table></div>
             `;
             window.mostrarFormularioOV = () => mostrarModalOV();
             window.verDetalleOV = async (id) => {
@@ -633,9 +633,9 @@
             const { data: inventario } = await supabase.from('inventario_ubicacion').select('*, productos(nombre, sku), ubicaciones(codigo)');
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Inventario por Ubicación</h2></div>
-                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>Producto</th><th>SKU</th><th>Ubicación</th><th>Lote</th><th>Cantidad</th><th>Reservado</th><th>Vencimiento</th></tr></thead><tbody>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead> <th>Producto</th><th>SKU</th><th>Ubicación</th><th>Lote</th><th>Cantidad</th><th>Reservado</th><th>Vencimiento</th> </thead><tbody>
                 ${inventario?.map(inv => `<tr><td>${inv.productos?.nombre}</td><td>${inv.productos?.sku}</td><td>${inv.ubicaciones?.codigo}</td><td>${inv.lote}</td><td>${inv.cantidad}</td><td>${inv.reservado}</td><td>${inv.fecha_vencimiento || '-'}</td></tr>`).join('') || '<tr><td colspan="7">No hay inventario</td></tr>'}
-                </tbody></table></div>
+                </tbody> </table></div>
             `;
         }
 
@@ -645,9 +645,9 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Manifiestos</h2>
                 <button onclick="mostrarFormularioManifiesto()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"><i class="fas fa-plus"></i> Nuevo Manifiesto</button></div>
-                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead><tr><th>ID</th><th>Transportista</th><th>Vehículo</th><th>Conductor</th><th>Salida</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+                <div class="bg-white rounded shadow overflow-x-auto"><table class="min-w-full"><thead> <th>ID</th><th>Transportista</th><th>Vehículo</th><th>Conductor</th><th>Salida</th><th>Estado</th><th>Acciones</th> </thead><tbody>
                 ${manifiestos?.map(m => `<tr><td>${m.id}</td><td>${m.transportistas?.nombre}</td><td>${m.vehiculos?.placa}</td><td>${m.conductores?.nombre}</td><td>${m.fecha_salida}</td><td>${m.estado}</td><td><button onclick="verDetalleManifiesto(${m.id})" class="text-blue-600"><i class="fas fa-eye"></i></button></td></tr>`).join('') || '<tr><td colspan="7">No hay manifiestos</td></tr>'}
-                </tbody></table></div>
+                </tbody> </table></div>
             `;
             window.mostrarFormularioManifiesto = () => mostrarModalManifiesto();
             window.verDetalleManifiesto = async (id) => {
